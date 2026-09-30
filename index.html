@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>우리 가계부</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+</head>
+
+<body>
+
+  <header class="header">
+
+    <div class="container header-inner">
+
+      <h1>우리 가계부</h1>
+
+      <nav class="nav">
+
+        <button
+          class="nav-btn active"
+          data-page="transactionPage"
+        >
+          거래 입력
+        </button>
+
+        <button
+          class="nav-btn"
+          data-page="dashboardPage"
+        >
+          월별 대시보드
+        </button>
+
+      </nav>
+
+    </div>
+
+  </header>
+
+
+  <main class="container">
+
+    <!-- =====================================
+         거래 입력 화면
+    ====================================== -->
+
+    <section
+      id="transactionPage"
+      class="page active"
+    >
+
+      <div class="card">
+
+        <h2>거래 입력</h2>
+
+        <form id="transactionForm">
+
+          <div class="form-group">
+
+            <label for="transactionDate">
+              날짜
+            </label>
+
+            <input
+              type="date"
+              id="transactionDate"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="transactionType">
+              유형
+            </label>
+
+            <select
+              id="transactionType"
+              required
+            >
+              <option value="소비">
+                소비
+              </option>
+
+              <option value="수입">
+                수입
+              </option>
+
+              <option value="저축">
+                저축
+              </option>
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              카테고리
+            </label>
+
+            <div class="inline-row">
+
+              <select
+                id="transactionCategory"
+                required
+              >
+              </select>
+
+              <button
+                type="button"
+                id="showCategoryButton"
+                class="secondary-btn small-btn"
+              >
+                +
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- 카테고리 추가 -->
+          <div
+            id="categoryAddBox"
+            class="category-add-box hidden"
+          >
+
+            <input
+              type="text"
+              id="newCategory"
+              placeholder="새 카테고리"
+              maxlength="30"
+            >
+
+            <button
+              type="button"
+              id="addCategoryButton"
+              class="secondary-btn"
+            >
+              추가
+            </button>
+
+          </div>
+
+
+          <div
+            id="paymentMethodGroup"
+            class="form-group"
+          >
+
+            <label for="paymentMethod">
+              결제수단
+            </label>
+
+            <select id="paymentMethod">
+
+              <option value="카드">
+                카드
+              </option>
+
+              <option value="현금">
+                현금
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="transactionAmount">
+              금액
+            </label>
+
+            <input
+              type="number"
+              id="transactionAmount"
+              min="1"
+              step="1"
+              placeholder="금액"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="transactionMemo">
+              메모
+            </label>
+
+            <input
+              type="text"
+              id="transactionMemo"
+              placeholder="선택사항"
+              maxlength="100"
+            >
+
+          </div>
+
+
+          <button
+            type="submit"
+            class="primary-btn"
+          >
+            거래 등록
+          </button>
+
+        </form>
+
+        <div
+          id="transactionMessage"
+          class="message"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================
+         월별 대시보드
+    ====================================== -->
+
+    <section
+      id="dashboardPage"
+      class="page"
+    >
+
+      <div class="card">
+
+        <div class="section-header">
+
+          <h2>월별 대시보드</h2>
+
+          <div class="month-picker">
+
+            <input
+              type="number"
+              id="dashboardYear"
+              min="2000"
+              max="2100"
+            >
+
+            <select id="dashboardMonth">
+
+              <option value="1">1월</option>
+              <option value="2">2월</option>
+              <option value="3">3월</option>
+              <option value="4">4월</option>
+              <option value="5">5월</option>
+              <option value="6">6월</option>
+              <option value="7">7월</option>
+              <option value="8">8월</option>
+              <option value="9">9월</option>
+              <option value="10">10월</option>
+              <option value="11">11월</option>
+              <option value="12">12월</option>
+
+            </select>
+
+            <button
+              type="button"
+              id="refreshDashboardButton"
+              class="secondary-btn"
+            >
+              조회
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- 요약 -->
+
+      <div class="summary-grid">
+
+        <div class="summary-card">
+
+          <span>총 수입</span>
+
+          <strong id="totalIncome">
+            0원
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>총 소비</span>
+
+          <strong id="totalExpense">
+            0원
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>총 저축</span>
+
+          <strong id="totalSaving">
+            0원
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>잔액</span>
+
+          <strong id="totalBalance">
+            0원
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>총 자산</span>
+
+          <strong id="totalAssets">
+            0원
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <!-- 소비 카테고리 -->
+
+      <div class="card">
+
+        <h2>카테고리별 소비</h2>
+
+        <div id="expenseCategoryList">
+        </div>
+
+      </div>
+
+
+      <!-- 예산 -->
+
+      <div class="card">
+
+        <h2>월 예산 설정</h2>
+
+        <form
+          id="budgetForm"
+          class="horizontal-form"
+        >
+
+          <select
+            id="budgetCategory"
+            required
+          >
+          </select>
+
+          <input
+            type="number"
+            id="budgetAmount"
+            min="0"
+            step="1"
+            placeholder="예산금액"
+            required
+          >
+
+          <button
+            type="submit"
+            class="primary-btn"
+          >
+            저장
+          </button>
+
+        </form>
+
+        <div
+          id="budgetMessage"
+          class="message"
+        ></div>
+
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>카테고리</th>
+                <th>설정예산</th>
+                <th>사용금액</th>
+                <th>남은예산</th>
+                <th>상태</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="budgetTableBody">
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      <!-- 자산 -->
+
+      <div class="card">
+
+        <h2>자산 등록</h2>
+
+        <form
+          id="assetForm"
+          class="horizontal-form"
+        >
+
+          <select
+            id="assetCategory"
+            required
+          >
+
+            <option value="예금">
+              예금
+            </option>
+
+            <option value="적금">
+              적금
+            </option>
+
+            <option value="주식">
+              주식
+            </option>
+
+            <option value="현금">
+              현금
+            </option>
+
+            <option value="기타">
+              기타
+            </option>
+
+          </select>
+
+
+          <input
+            type="text"
+            id="assetName"
+            placeholder="자산명"
+            maxlength="50"
+            required
+          >
+
+
+          <input
+            type="number"
+            id="assetAmount"
+            min="0"
+            step="1"
+            placeholder="금액"
+            required
+          >
+
+
+          <button
+            type="submit"
+            class="primary-btn"
+          >
+            등록
+          </button>
+
+        </form>
+
+
+        <div
+          id="assetMessage"
+          class="message"
+        ></div>
+
+
+        <div id="assetList">
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script src="app.js"></script>
+
+</body>
+</html>
