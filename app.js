@@ -1,11 +1,7 @@
 /*************************************************
- * 우리 가계부 MVP
+ * 우리 가계부
  * Frontend JavaScript
- *************************************************/
-
-
-/*************************************************
- * Apps Script Web App 주소
+ * 4~6단계 통합본
  *************************************************/
 
 const API_URL =
@@ -17,6 +13,18 @@ const API_URL =
  *************************************************/
 
 let categories = [];
+let currentTransactions = [];
+let currentAssets = [];
+let currentDebts = [];
+let recurringItems = [];
+
+
+/*************************************************
+ * 공통 DOM
+ *************************************************/
+
+const $ = id =>
+  document.getElementById(id);
 
 
 /*************************************************
@@ -27,18 +35,33 @@ document.addEventListener(
   "DOMContentLoaded",
   async () => {
 
-    setDefaultDate();
-    setDefaultDashboardDate();
-
+    setDefaultDates();
     bindNavigation();
     bindEvents();
 
-    updatePaymentMethodVisibility();
+    updatePaymentVisibility(
+      "transactionType",
+      "paymentMethodGroup"
+    );
+
+    updatePaymentVisibility(
+      "editTransactionType",
+      "editPaymentMethodGroup"
+    );
+
+    updatePaymentVisibility(
+      "recurringType",
+      "recurringPaymentMethodGroup"
+    );
 
     try {
 
       await loadCategories();
-      await loadDashboard();
+
+      await Promise.all([
+        loadDashboard(),
+        loadRecurringTransactions()
+      ]);
 
     } catch (error) {
 
@@ -51,44 +74,30 @@ document.addEventListener(
 
 
 /*************************************************
- * 기본 날짜 설정
+ * 기본 날짜
  *************************************************/
 
-function setDefaultDate() {
+function setDefaultDates() {
 
   const today = new Date();
 
-  const dateString =
+  $("transactionDate").value =
     formatDateForInput(today);
 
-  document.getElementById(
-    "transactionDate"
-  ).value = dateString;
+  $("recurringStartDate").value =
+    formatDateForInput(today);
+
+  $("dashboardYear").value =
+    today.getFullYear();
+
+  $("dashboardMonth").value =
+    today.getMonth() + 1;
 
 }
 
 
 /*************************************************
- * 대시보드 기본 연/월
- *************************************************/
-
-function setDefaultDashboardDate() {
-
-  const today = new Date();
-
-  document.getElementById(
-    "dashboardYear"
-  ).value = today.getFullYear();
-
-  document.getElementById(
-    "dashboardMonth"
-  ).value = today.getMonth() + 1;
-
-}
-
-
-/*************************************************
- * 메뉴 이동
+ * 메뉴
  *************************************************/
 
 function bindNavigation() {
@@ -109,9 +118,13 @@ function bindNavigation() {
           if (
             pageId === "dashboardPage"
           ) {
-
             await loadDashboard();
+          }
 
+          if (
+            pageId === "recurringPage"
+          ) {
+            await loadRecurringTransactions();
           }
 
         }
@@ -122,175 +135,403 @@ function bindNavigation() {
 }
 
 
-/*************************************************
- * 페이지 변경
- *************************************************/
-
 function showPage(pageId) {
 
   document
     .querySelectorAll(".page")
-    .forEach(page => {
-
-      page.classList.remove("active");
-
-    });
+    .forEach(page =>
+      page.classList.remove("active")
+    );
 
   document
     .querySelectorAll(".nav-btn")
-    .forEach(button => {
+    .forEach(button =>
+      button.classList.remove("active")
+    );
 
-      button.classList.remove("active");
+  $(pageId).classList.add("active");
 
-    });
-
-  document
-    .getElementById(pageId)
-    .classList
-    .add("active");
-
-  document
-    .querySelector(
+  const button =
+    document.querySelector(
       `[data-page="${pageId}"]`
-    )
-    .classList
-    .add("active");
+    );
+
+  if (button) {
+    button.classList.add("active");
+  }
 
 }
 
 
 /*************************************************
- * 이벤트 등록
+ * 이벤트
  *************************************************/
 
 function bindEvents() {
 
-  document
-    .getElementById("transactionType")
+  $("transactionType")
     .addEventListener(
       "change",
       () => {
 
-        updatePaymentMethodVisibility();
+        updatePaymentVisibility(
+          "transactionType",
+          "paymentMethodGroup"
+        );
+
         renderTransactionCategories();
 
       }
     );
 
 
-  document
-    .getElementById("showCategoryButton")
+  $("showCategoryButton")
     .addEventListener(
       "click",
       toggleCategoryBox
     );
 
 
-  document
-    .getElementById("addCategoryButton")
+  $("addCategoryButton")
     .addEventListener(
       "click",
       addCategory
     );
 
 
-  document
-    .getElementById("transactionForm")
+  $("transactionForm")
     .addEventListener(
       "submit",
       submitTransaction
     );
 
 
-  document
-    .getElementById(
-      "refreshDashboardButton"
-    )
+  $("refreshDashboardButton")
     .addEventListener(
       "click",
       loadDashboard
     );
 
 
-  document
-    .getElementById("budgetForm")
+  $("previousMonthButton")
+    .addEventListener(
+      "click",
+      () => moveDashboardMonth(-1)
+    );
+
+
+  $("nextMonthButton")
+    .addEventListener(
+      "click",
+      () => moveDashboardMonth(1)
+    );
+
+
+  $("budgetForm")
     .addEventListener(
       "submit",
       saveBudget
     );
 
 
-  document
-    .getElementById("assetForm")
+  $("transactionFilterType")
+    .addEventListener(
+      "change",
+      () => {
+
+        renderTransactionFilterCategories();
+        renderTransactionList();
+
+      }
+    );
+
+
+  $("transactionFilterCategory")
+    .addEventListener(
+      "change",
+      renderTransactionList
+    );
+
+
+  $("transactionTableBody")
+    .addEventListener(
+      "click",
+      handleTransactionTableClick
+    );
+
+
+  $("editTransactionType")
+    .addEventListener(
+      "change",
+      () => {
+
+        renderEditTransactionCategories();
+
+        updatePaymentVisibility(
+          "editTransactionType",
+          "editPaymentMethodGroup"
+        );
+
+      }
+    );
+
+
+  $("editTransactionForm")
+    .addEventListener(
+      "submit",
+      submitTransactionEdit
+    );
+
+
+  $("deleteTransactionButton")
+    .addEventListener(
+      "click",
+      deleteCurrentTransaction
+    );
+
+
+  $("closeEditModalButton")
+    .addEventListener(
+      "click",
+      closeTransactionEditModal
+    );
+
+
+  $("cancelEditTransactionButton")
+    .addEventListener(
+      "click",
+      closeTransactionEditModal
+    );
+
+
+  $("assetForm")
     .addEventListener(
       "submit",
       addAsset
     );
 
+
+  $("assetList")
+    .addEventListener(
+      "click",
+      handleAssetListClick
+    );
+
+
+  $("editAssetForm")
+    .addEventListener(
+      "submit",
+      submitAssetEdit
+    );
+
+
+  $("deleteAssetButton")
+    .addEventListener(
+      "click",
+      deleteCurrentAsset
+    );
+
+
+  $("closeAssetModalButton")
+    .addEventListener(
+      "click",
+      closeAssetEditModal
+    );
+
+
+  $("cancelAssetEditButton")
+    .addEventListener(
+      "click",
+      closeAssetEditModal
+    );
+
+
+  $("debtForm")
+    .addEventListener(
+      "submit",
+      addDebt
+    );
+
+
+  $("debtList")
+    .addEventListener(
+      "click",
+      handleDebtListClick
+    );
+
+
+  $("editDebtForm")
+    .addEventListener(
+      "submit",
+      submitDebtEdit
+    );
+
+
+  $("deleteDebtButton")
+    .addEventListener(
+      "click",
+      deleteCurrentDebt
+    );
+
+
+  $("closeDebtModalButton")
+    .addEventListener(
+      "click",
+      closeDebtEditModal
+    );
+
+
+  $("cancelDebtEditButton")
+    .addEventListener(
+      "click",
+      closeDebtEditModal
+    );
+
+
+  $("recurringType")
+    .addEventListener(
+      "change",
+      () => {
+
+        renderRecurringCategories();
+
+        updatePaymentVisibility(
+          "recurringType",
+          "recurringPaymentMethodGroup"
+        );
+
+      }
+    );
+
+
+  $("recurringForm")
+    .addEventListener(
+      "submit",
+      saveRecurringTransaction
+    );
+
+
+  $("cancelRecurringEditButton")
+    .addEventListener(
+      "click",
+      resetRecurringForm
+    );
+
+
+  $("recurringTableBody")
+    .addEventListener(
+      "click",
+      handleRecurringTableClick
+    );
+
+
+  document
+    .querySelectorAll(".modal-backdrop")
+    .forEach(backdrop => {
+
+      backdrop.addEventListener(
+        "click",
+        event => {
+
+          const type =
+            event.currentTarget.dataset.closeModal;
+
+          if (type === "transaction") {
+            closeTransactionEditModal();
+          }
+
+          if (type === "asset") {
+            closeAssetEditModal();
+          }
+
+          if (type === "debt") {
+            closeDebtEditModal();
+          }
+
+        }
+      );
+
+    });
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      closeTransactionEditModal();
+      closeAssetEditModal();
+      closeDebtEditModal();
+
+    }
+  );
+
 }
 
 
 /*************************************************
- * 결제수단 표시 / 숨김
+ * 월 이동
  *************************************************/
 
-function updatePaymentMethodVisibility() {
+async function moveDashboardMonth(offset) {
 
-  const type =
-    document.getElementById(
-      "transactionType"
-    ).value;
-
-  const paymentGroup =
-    document.getElementById(
-      "paymentMethodGroup"
+  let year =
+    Number(
+      $("dashboardYear").value
     );
 
-  if (type === "소비") {
-
-    paymentGroup.classList.remove(
-      "hidden"
+  let month =
+    Number(
+      $("dashboardMonth").value
     );
 
-  } else {
+  month += offset;
 
-    paymentGroup.classList.add(
-      "hidden"
-    );
-
+  if (month < 1) {
+    month = 12;
+    year--;
   }
+
+  if (month > 12) {
+    month = 1;
+    year++;
+  }
+
+  $("dashboardYear").value =
+    year;
+
+  $("dashboardMonth").value =
+    month;
+
+  await loadDashboard();
 
 }
 
 
 /*************************************************
- * 카테고리 추가 영역 토글
+ * 결제수단 표시
  *************************************************/
 
-function toggleCategoryBox() {
+function updatePaymentVisibility(
+  typeId,
+  groupId
+) {
 
-  const box =
-    document.getElementById(
-      "categoryAddBox"
+  $(groupId)
+    .classList
+    .toggle(
+      "hidden",
+      $(typeId).value !== "지출"
     );
-
-  box.classList.toggle("hidden");
-
-  if (
-    !box.classList.contains("hidden")
-  ) {
-
-    document
-      .getElementById("newCategory")
-      .focus();
-
-  }
 
 }
 
 
 /*************************************************
- * 카테고리 조회
+ * 카테고리
  *************************************************/
 
 async function loadCategories() {
@@ -305,90 +546,187 @@ async function loadCategories() {
 
   renderTransactionCategories();
   renderBudgetCategories();
+  renderTransactionFilterCategories();
+  renderEditTransactionCategories();
+  renderRecurringCategories();
 
 }
 
 
-/*************************************************
- * 거래 카테고리 출력
- *************************************************/
+function fillCategorySelect(
+  select,
+  type,
+  emptyText,
+  selected = ""
+) {
 
-function renderTransactionCategories() {
-
-  const type =
-    document.getElementById(
-      "transactionType"
-    ).value;
-
-  const select =
-    document.getElementById(
-      "transactionCategory"
-    );
-
-  const filtered =
+  const items =
     categories.filter(
-      item => item.type === type
+      item =>
+        item.type === type
     );
 
   select.innerHTML = "";
 
-  filtered.forEach(item => {
+  if (!items.length) {
 
     const option =
-      document.createElement("option");
+      document.createElement(
+        "option"
+      );
 
-    option.value = item.category;
-    option.textContent = item.category;
+    option.value = "";
+    option.textContent =
+      emptyText;
+
+    select.appendChild(option);
+
+    return;
+
+  }
+
+  items.forEach(item => {
+
+    const option =
+      document.createElement(
+        "option"
+      );
+
+    option.value =
+      item.category;
+
+    option.textContent =
+      item.category;
 
     select.appendChild(option);
 
   });
 
-  if (filtered.length === 0) {
-
-    const option =
-      document.createElement("option");
-
-    option.value = "";
-    option.textContent =
-      "카테고리를 추가해주세요";
-
-    select.appendChild(option);
-
+  if (
+    selected &&
+    items.some(
+      item =>
+        item.category === selected
+    )
+  ) {
+    select.value = selected;
   }
 
 }
 
 
-/*************************************************
- * 예산 카테고리 출력
- *************************************************/
+function renderTransactionCategories() {
+
+  fillCategorySelect(
+    $("transactionCategory"),
+    $("transactionType").value,
+    "카테고리를 추가해주세요"
+  );
+
+}
+
 
 function renderBudgetCategories() {
 
+  fillCategorySelect(
+    $("budgetCategory"),
+    "지출",
+    "지출 카테고리가 없습니다"
+  );
+
+}
+
+
+function renderEditTransactionCategories(
+  selected = ""
+) {
+
+  fillCategorySelect(
+    $("editTransactionCategory"),
+    $("editTransactionType").value,
+    "카테고리가 없습니다",
+    selected
+  );
+
+}
+
+
+function renderRecurringCategories(
+  selected = ""
+) {
+
+  fillCategorySelect(
+    $("recurringCategory"),
+    $("recurringType").value,
+    "카테고리가 없습니다",
+    selected
+  );
+
+}
+
+
+function renderTransactionFilterCategories() {
+
+  const type =
+    $("transactionFilterType").value;
+
   const select =
-    document.getElementById(
-      "budgetCategory"
-    );
+    $("transactionFilterCategory");
 
-  const consumerCategories =
-    categories.filter(
-      item => item.type === "소비"
-    );
+  const previous =
+    select.value;
 
-  select.innerHTML = "";
+  select.innerHTML =
+    '<option value="">전체 카테고리</option>';
 
-  consumerCategories.forEach(item => {
+  const names =
+    categories
+      .filter(
+        item =>
+          !type ||
+          item.type === type
+      )
+      .map(
+        item =>
+          item.category
+      );
 
-    const option =
-      document.createElement("option");
+  [...new Set(names)]
+    .sort(
+      (a, b) =>
+        a.localeCompare(
+          b,
+          "ko"
+        )
+    )
+    .forEach(name => {
 
-    option.value = item.category;
-    option.textContent = item.category;
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    select.appendChild(option);
+      option.value =
+        name;
 
-  });
+      option.textContent =
+        name;
+
+      select.appendChild(
+        option
+      );
+
+    });
+
+  if (
+    [...select.options]
+      .some(
+        option =>
+          option.value === previous
+      )
+  ) {
+    select.value = previous;
+  }
 
 }
 
@@ -397,20 +735,32 @@ function renderBudgetCategories() {
  * 카테고리 추가
  *************************************************/
 
+function toggleCategoryBox() {
+
+  $("categoryAddBox")
+    .classList
+    .toggle("hidden");
+
+  if (
+    !$("categoryAddBox")
+      .classList
+      .contains("hidden")
+  ) {
+    $("newCategory").focus();
+  }
+
+}
+
+
 async function addCategory() {
 
   const type =
-    document.getElementById(
-      "transactionType"
-    ).value;
-
-  const input =
-    document.getElementById(
-      "newCategory"
-    );
+    $("transactionType").value;
 
   const category =
-    input.value.trim();
+    $("newCategory")
+      .value
+      .trim();
 
   if (!category) {
 
@@ -432,18 +782,17 @@ async function addCategory() {
       }
     );
 
-    input.value = "";
+    $("newCategory").value =
+      "";
 
-    document
-      .getElementById("categoryAddBox")
+    $("categoryAddBox")
       .classList
       .add("hidden");
 
     await loadCategories();
 
-    document.getElementById(
-      "transactionCategory"
-    ).value = category;
+    $("transactionCategory").value =
+      category;
 
   } catch (error) {
 
@@ -458,57 +807,45 @@ async function addCategory() {
  * 거래 등록
  *************************************************/
 
-async function submitTransaction(event) {
+async function submitTransaction(
+  event
+) {
 
   event.preventDefault();
 
-  const messageElement =
-    document.getElementById(
-      "transactionMessage"
-    );
-
-  clearMessage(messageElement);
+  clearMessage(
+    $("transactionMessage")
+  );
 
   const type =
-    document.getElementById(
-      "transactionType"
-    ).value;
+    $("transactionType").value;
 
   const data = {
 
     date:
-      document.getElementById(
-        "transactionDate"
-      ).value,
+      $("transactionDate").value,
 
     type,
 
     category:
-      document.getElementById(
-        "transactionCategory"
-      ).value,
+      $("transactionCategory").value,
 
     paymentMethod:
-      type === "소비"
-        ? document.getElementById(
-            "paymentMethod"
-          ).value
+      type === "지출"
+        ? $("paymentMethod").value
         : "",
 
     amount:
       Number(
-        document.getElementById(
-          "transactionAmount"
-        ).value
+        $("transactionAmount").value
       ),
 
     memo:
-      document.getElementById(
-        "transactionMemo"
-      ).value.trim()
+      $("transactionMemo")
+        .value
+        .trim()
 
   };
-
 
   try {
 
@@ -518,23 +855,21 @@ async function submitTransaction(event) {
     );
 
     showMessage(
-      messageElement,
+      $("transactionMessage"),
       "거래가 등록되었습니다.",
       "success"
     );
 
-    document.getElementById(
-      "transactionAmount"
-    ).value = "";
+    $("transactionAmount").value =
+      "";
 
-    document.getElementById(
-      "transactionMemo"
-    ).value = "";
+    $("transactionMemo").value =
+      "";
 
   } catch (error) {
 
     showMessage(
-      messageElement,
+      $("transactionMessage"),
       error.message,
       "error"
     );
@@ -552,32 +887,99 @@ async function loadDashboard() {
 
   const year =
     Number(
-      document.getElementById(
-        "dashboardYear"
-      ).value
+      $("dashboardYear").value
     );
 
   const month =
     Number(
-      document.getElementById(
-        "dashboardMonth"
-      ).value
+      $("dashboardMonth").value
     );
 
   try {
 
-    const response =
-      await apiGet(
-        "getDashboard",
-        {
-          year,
-          month
-        }
-      );
+    const [
+      dashboard,
+      transactions,
+      stats,
+      trend,
+      debts
+    ] =
+      await Promise.all([
+
+        apiGet(
+          "getDashboard",
+          {
+            year,
+            month
+          }
+        ),
+
+        apiGet(
+          "getTransactions",
+          {
+            year,
+            month
+          }
+        ),
+
+        apiGet(
+          "getDashboardStats",
+          {
+            year,
+            month
+          }
+        ),
+
+        apiGet(
+          "getMonthlyTrend",
+          {
+            year,
+            month,
+            count: 6
+          }
+        ),
+
+        apiGet(
+          "getDebts"
+        )
+
+      ]);
+
 
     renderDashboard(
-      response.data
+      dashboard.data || {}
     );
+
+
+    currentTransactions =
+      transactions.data || [];
+
+    currentDebts =
+      debts.data || [];
+
+
+    renderTransactionFilterCategories();
+    renderTransactionList();
+
+    renderDashboardStats(
+      stats.data || {}
+    );
+
+    renderExpenseDonutChart(
+      dashboard.data
+        ?.expenseCategories ||
+      []
+    );
+
+    renderMonthlyTrendChart(
+      trend.data || []
+    );
+
+    renderDebts(
+      currentDebts
+    );
+
+    renderWealthSummary();
 
   } catch (error) {
 
@@ -594,7 +996,7 @@ async function loadDashboard() {
 
 
 /*************************************************
- * 대시보드 출력
+ * 대시보드 렌더링
  *************************************************/
 
 function renderDashboard(data) {
@@ -602,30 +1004,29 @@ function renderDashboard(data) {
   const summary =
     data.summary || {};
 
-  document.getElementById(
-    "totalIncome"
-  ).textContent =
-    formatMoney(summary.income);
+  $("totalIncome").textContent =
+    formatMoney(
+      summary.income
+    );
 
-  document.getElementById(
-    "totalExpense"
-  ).textContent =
-    formatMoney(summary.expense);
+  $("totalExpense").textContent =
+    formatMoney(
+      summary.expense
+    );
 
-  document.getElementById(
-    "totalSaving"
-  ).textContent =
-    formatMoney(summary.saving);
+  $("totalSaving").textContent =
+    formatMoney(
+      summary.saving
+    );
 
-  document.getElementById(
-    "totalBalance"
-  ).textContent =
-    formatMoney(summary.balance);
+  $("totalBalance").textContent =
+    formatMoney(
+      summary.balance
+    );
 
-  document.getElementById(
-    "totalAssets"
-  ).textContent =
-    formatMoney(summary.totalAssets);
+
+  currentAssets =
+    data.assets || [];
 
 
   renderExpenseCategories(
@@ -636,31 +1037,102 @@ function renderDashboard(data) {
     data.budgets || []
   );
 
-  renderAssets(
-    data.assets || []
+  renderBudgetOverview(
+    data.budgets || []
   );
+
+  renderAssets(
+    currentAssets
+  );
+
+  renderAssetSummaryByCategory(
+    currentAssets
+  );
+
+  renderWealthSummary();
 
 }
 
 
 /*************************************************
- * 소비 카테고리 출력
+ * 핵심 통계
  *************************************************/
 
-function renderExpenseCategories(items) {
+function renderDashboardStats(
+  stats
+) {
+
+  const rate =
+    stats.expenseChangeRate;
+
+  $("expenseChangeRate")
+    .textContent =
+      rate === null ||
+      rate === undefined
+        ? "-"
+        : (
+            `${rate > 0 ? "+" : ""}` +
+            `${formatPercent(rate)}%`
+          );
+
+
+  $("previousExpenseText")
+    .textContent =
+      `전월 ${
+        formatMoney(
+          stats.previousExpense || 0
+        )
+      }`;
+
+
+  $("dailyExpenseAverage")
+    .textContent =
+      formatMoney(
+        stats.dailyExpenseAverage || 0
+      );
+
+
+  $("topExpenseCategory")
+    .textContent =
+      stats.topExpenseCategory ||
+      "-";
+
+
+  $("topExpenseAmount")
+    .textContent =
+      formatMoney(
+        stats.topExpenseAmount || 0
+      );
+
+
+  $("savingRate")
+    .textContent =
+      `${formatPercent(
+        stats.savingRate || 0
+      )}%`;
+
+}
+
+
+/*************************************************
+ * 지출 카테고리
+ *************************************************/
+
+function renderExpenseCategories(
+  items
+) {
 
   const container =
-    document.getElementById(
-      "expenseCategoryList"
-    );
+    $("expenseCategoryList");
 
-  container.innerHTML = "";
+  container.innerHTML =
+    "";
 
-  if (items.length === 0) {
+  if (!items.length) {
 
     container.innerHTML =
       '<div class="empty-message">' +
-      '이번 달 소비내역이 없습니다.' +
+      '이번 달 지출내역이 없습니다.' +
       '</div>';
 
     return;
@@ -670,9 +1142,12 @@ function renderExpenseCategories(items) {
   items.forEach(item => {
 
     const row =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
-    row.className = "data-row";
+    row.className =
+      "data-row";
 
     row.innerHTML = `
       <span>
@@ -692,50 +1167,522 @@ function renderExpenseCategories(items) {
 
 
 /*************************************************
+ * 지출 도넛 차트
+ *************************************************/
+
+function renderExpenseDonutChart(
+  items
+) {
+
+  const container =
+    $("expenseDonutChart");
+
+  container.innerHTML =
+    "";
+
+  const total =
+    items.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.amount || 0
+        ),
+      0
+    );
+
+  if (
+    !items.length ||
+    total <= 0
+  ) {
+
+    container.innerHTML =
+      '<div class="empty-message">' +
+      '지출 데이터가 없습니다.' +
+      '</div>';
+
+    return;
+
+  }
+
+
+  const shades = [
+    "#222",
+    "#444",
+    "#666",
+    "#888",
+    "#aaa",
+    "#bbb",
+    "#ccc",
+    "#ddd"
+  ];
+
+  let degree = 0;
+
+  const segments =
+    items.map(
+      (item, index) => {
+
+        const ratio =
+          Number(
+            item.amount || 0
+          ) /
+          total;
+
+        const start =
+          degree;
+
+        degree +=
+          ratio * 360;
+
+        return (
+          `${shades[
+            index %
+            shades.length
+          ]} ` +
+          `${start}deg ` +
+          `${degree}deg`
+        );
+
+      }
+    );
+
+
+  const wrapper =
+    document.createElement(
+      "div"
+    );
+
+  wrapper.className =
+    "donut-layout";
+
+
+  const donut =
+    document.createElement(
+      "div"
+    );
+
+  donut.className =
+    "donut-visual";
+
+  donut.style.background =
+    `conic-gradient(${segments.join(",")})`;
+
+
+  const legend =
+    document.createElement(
+      "div"
+    );
+
+  legend.className =
+    "chart-legend";
+
+
+  items.forEach(
+    (item, index) => {
+
+      const percent =
+        (
+          Number(
+            item.amount || 0
+          ) /
+          total
+        ) * 100;
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+      row.className =
+        "chart-legend-item";
+
+      row.innerHTML = `
+        <span class="chart-legend-name">
+
+          <span
+            class="chart-dot"
+            style="background:${
+              shades[
+                index %
+                shades.length
+              ]
+            }"
+          ></span>
+
+          ${escapeHtml(item.category)}
+
+        </span>
+
+        <strong>
+          ${formatPercent(percent)}%
+        </strong>
+      `;
+
+      legend.appendChild(row);
+
+    }
+  );
+
+
+  wrapper.appendChild(
+    donut
+  );
+
+  wrapper.appendChild(
+    legend
+  );
+
+  container.appendChild(
+    wrapper
+  );
+
+}
+
+
+/*************************************************
+ * 6개월 추이
+ *************************************************/
+
+function renderMonthlyTrendChart(
+  items
+) {
+
+  const container =
+    $("monthlyTrendChart");
+
+  container.innerHTML =
+    "";
+
+  if (!items.length) {
+
+    container.innerHTML =
+      '<div class="empty-message">' +
+      '월별 데이터가 없습니다.' +
+      '</div>';
+
+    return;
+
+  }
+
+
+  const maxValue =
+    Math.max(
+      1,
+      ...items.flatMap(
+        item => [
+          Number(
+            item.income || 0
+          ),
+          Number(
+            item.expense || 0
+          )
+        ]
+      )
+    );
+
+
+  const chart =
+    document.createElement(
+      "div"
+    );
+
+  chart.className =
+    "bar-chart";
+
+
+  items.forEach(item => {
+
+    const column =
+      document.createElement(
+        "div"
+      );
+
+    column.className =
+      "bar-column";
+
+
+    const pair =
+      document.createElement(
+        "div"
+      );
+
+    pair.className =
+      "bar-pair";
+
+
+    const income =
+      document.createElement(
+        "div"
+      );
+
+    income.className =
+      "bar";
+
+    income.style.height =
+      `${
+        Math.max(
+          2,
+          Number(
+            item.income || 0
+          ) /
+          maxValue *
+          100
+        )
+      }%`;
+
+    income.title =
+      `수입 ${
+        formatMoney(
+          item.income
+        )
+      }`;
+
+
+    const expense =
+      document.createElement(
+        "div"
+      );
+
+    expense.className =
+      "bar secondary";
+
+    expense.style.height =
+      `${
+        Math.max(
+          2,
+          Number(
+            item.expense || 0
+          ) /
+          maxValue *
+          100
+        )
+      }%`;
+
+    expense.title =
+      `지출 ${
+        formatMoney(
+          item.expense
+        )
+      }`;
+
+
+    pair.appendChild(
+      income
+    );
+
+    pair.appendChild(
+      expense
+    );
+
+
+    const label =
+      document.createElement(
+        "div"
+      );
+
+    label.className =
+      "bar-label";
+
+    label.textContent =
+      item.label ||
+      `${item.month}월`;
+
+
+    column.appendChild(
+      pair
+    );
+
+    column.appendChild(
+      label
+    );
+
+    chart.appendChild(
+      column
+    );
+
+  });
+
+
+  const caption =
+    document.createElement(
+      "div"
+    );
+
+  caption.className =
+    "chart-caption";
+
+  caption.innerHTML = `
+    <span>
+      <span
+        class="chart-dot"
+        style="background:#333"
+      ></span>
+      수입
+    </span>
+
+    <span>
+      <span
+        class="chart-dot"
+        style="background:#999"
+      ></span>
+      지출
+    </span>
+  `;
+
+
+  container.appendChild(
+    chart
+  );
+
+  container.appendChild(
+    caption
+  );
+
+}
+
+
+/*************************************************
+ * 전체 예산
+ *************************************************/
+
+function renderBudgetOverview(
+  items
+) {
+
+  const totalBudget =
+    items.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.budget || 0
+        ),
+      0
+    );
+
+
+  const totalUsed =
+    items.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.used || 0
+        ),
+      0
+    );
+
+
+  const remaining =
+    totalBudget -
+    totalUsed;
+
+
+  const rate =
+    totalBudget > 0
+      ? (
+          totalUsed /
+          totalBudget
+        ) * 100
+      : 0;
+
+
+  $("totalBudgetAmount")
+    .textContent =
+      formatMoney(
+        totalBudget
+      );
+
+
+  $("totalBudgetUsed")
+    .textContent =
+      formatMoney(
+        totalUsed
+      );
+
+
+  $("totalBudgetRemaining")
+    .textContent =
+      formatMoney(
+        remaining
+      );
+
+
+  $("totalBudgetRemaining")
+    .className =
+      remaining < 0
+        ? "negative"
+        : "";
+
+
+  $("totalBudgetRate")
+    .textContent =
+      `${formatPercent(rate)}%`;
+
+
+  $("totalBudgetStatus")
+    .textContent =
+      getBudgetStatus(
+        totalBudget,
+        remaining
+      );
+
+
+  const progress =
+    $("totalBudgetProgress");
+
+  progress.style.width =
+    `${
+      Math.min(
+        Math.max(
+          rate,
+          0
+        ),
+        100
+      )
+    }%`;
+
+  progress.classList.toggle(
+    "progress-over",
+    rate > 100
+  );
+
+}
+
+
+/*************************************************
  * 예산 저장
  *************************************************/
 
-async function saveBudget(event) {
+async function saveBudget(
+  event
+) {
 
   event.preventDefault();
 
-  const messageElement =
-    document.getElementById(
-      "budgetMessage"
-    );
-
-  clearMessage(messageElement);
+  clearMessage(
+    $("budgetMessage")
+  );
 
   const data = {
 
     year:
       Number(
-        document.getElementById(
-          "dashboardYear"
-        ).value
+        $("dashboardYear").value
       ),
 
     month:
       Number(
-        document.getElementById(
-          "dashboardMonth"
-        ).value
+        $("dashboardMonth").value
       ),
 
     category:
-      document.getElementById(
-        "budgetCategory"
-      ).value,
+      $("budgetCategory").value,
 
     amount:
       Number(
-        document.getElementById(
-          "budgetAmount"
-        ).value
+        $("budgetAmount").value
       )
 
   };
-
 
   try {
 
@@ -745,21 +1692,20 @@ async function saveBudget(event) {
     );
 
     showMessage(
-      messageElement,
+      $("budgetMessage"),
       "예산이 저장되었습니다.",
       "success"
     );
 
-    document.getElementById(
-      "budgetAmount"
-    ).value = "";
+    $("budgetAmount").value =
+      "";
 
     await loadDashboard();
 
   } catch (error) {
 
     showMessage(
-      messageElement,
+      $("budgetMessage"),
       error.message,
       "error"
     );
@@ -770,121 +1716,297 @@ async function saveBudget(event) {
 
 
 /*************************************************
- * 예산 출력
+ * 예산 목록
  *************************************************/
 
-function renderBudgets(items) {
+function renderBudgets(
+  items
+) {
 
   const tbody =
-    document.getElementById(
-      "budgetTableBody"
-    );
+    $("budgetTableBody");
 
-  tbody.innerHTML = "";
+  tbody.innerHTML =
+    "";
 
-  if (items.length === 0) {
+  if (!items.length) {
 
-    const row =
-      document.createElement("tr");
-
-    row.innerHTML = `
-      <td colspan="5" class="empty-message">
-        설정된 예산이 없습니다.
-      </td>
+    tbody.innerHTML = `
+      <tr>
+        <td
+          colspan="6"
+          class="empty-message"
+        >
+          설정된 예산이 없습니다.
+        </td>
+      </tr>
     `;
-
-    tbody.appendChild(row);
 
     return;
 
   }
 
+
   items.forEach(item => {
 
-    const row =
-      document.createElement("tr");
+    const budget =
+      Number(
+        item.budget || 0
+      );
+
+    const used =
+      Number(
+        item.used || 0
+      );
 
     const remaining =
-      Number(item.remaining) || 0;
+      Number(
+        item.remaining || 0
+      );
 
-    const budget =
-      Number(item.budget) || 0;
+    const rate =
+      budget > 0
+        ? (
+            used /
+            budget
+          ) * 100
+        : 0;
 
-    const remainingClass =
-      remaining < 0
-        ? "negative"
-        : "";
 
-    /*
-     * 예산 상태
-     *
-     * 0원 미만      → 늠쳤따옹!
-     * 정확히 0원    → 다썼따옹!
-     * 20% 이하 남음 → 을마안남았따옹!
-     */
+    const status =
+      item.status ||
+      getBudgetStatus(
+        budget,
+        remaining
+      );
 
-    let statusText =
-      item.status || "";
 
-    /*
-     * 이전 버전의 Code.gs와 연결되어도
-     * 정상 표시될 수 있도록 프론트에서도
-     * 상태를 한 번 더 계산합니다.
-     */
-
-    if (!statusText) {
-
-      if (remaining < 0) {
-
-        statusText =
-          "늠쳤따옹!";
-
-      } else if (
-        remaining === 0 &&
-        budget > 0
-      ) {
-
-        statusText =
-          "다썼따옹!";
-
-      } else if (
-        budget > 0 &&
-        remaining > 0 &&
-        remaining <= budget * 0.2
-      ) {
-
-        statusText =
-          "을마안남았따옹!";
-
-      }
-
-    }
+    const row =
+      document.createElement(
+        "tr"
+      );
 
     row.innerHTML = `
+      <td>
+        ${escapeHtml(item.category)}
+      </td>
+
+      <td>
+        ${formatMoney(budget)}
+      </td>
+
+      <td>
+        ${formatMoney(used)}
+      </td>
+
+      <td class="${
+        remaining < 0
+          ? "negative"
+          : ""
+      }">
+        ${formatMoney(remaining)}
+      </td>
+
+      <td class="budget-progress-cell">
+
+        <span class="budget-rate-text">
+          ${formatPercent(rate)}%
+        </span>
+
+        <div class="progress-track">
+
+          <div
+            class="progress-fill ${
+              rate > 100
+                ? "progress-over"
+                : ""
+            }"
+            style="
+              width:${
+                Math.min(
+                  Math.max(
+                    rate,
+                    0
+                  ),
+                  100
+                )
+              }%
+            "
+          ></div>
+
+        </div>
+
+      </td>
+
+      <td class="warning-text">
+        ${escapeHtml(status)}
+      </td>
+    `;
+
+    tbody.appendChild(
+      row
+    );
+
+  });
+
+}
+
+
+function getBudgetStatus(
+  budget,
+  remaining
+) {
+
+  if (budget <= 0) {
+    return "";
+  }
+
+  if (remaining < 0) {
+    return "늠쳤따옹!";
+  }
+
+  if (remaining === 0) {
+    return "다썼따옹!";
+  }
+
+  if (
+    remaining <=
+    budget * 0.2
+  ) {
+    return "을마안남았따옹!";
+  }
+
+  return "";
+
+}
+
+
+/*************************************************
+ * 거래내역
+ *************************************************/
+
+function renderTransactionList() {
+
+  const type =
+    $("transactionFilterType")
+      .value;
+
+  const category =
+    $("transactionFilterCategory")
+      .value;
+
+
+  const filtered =
+    currentTransactions.filter(
+      item => {
+
+        if (
+          type &&
+          item.type !== type
+        ) {
+          return false;
+        }
+
+        if (
+          category &&
+          item.category !== category
+        ) {
+          return false;
+        }
+
+        return true;
+
+      }
+    );
+
+
+  $("transactionCount")
+    .textContent =
+      `${filtered.length}건`;
+
+
+  const tbody =
+    $("transactionTableBody");
+
+  tbody.innerHTML =
+    "";
+
+
+  if (!filtered.length) {
+
+    tbody.innerHTML = `
+      <tr>
+        <td
+          colspan="7"
+          class="empty-message"
+        >
+          조건에 맞는 거래내역이 없습니다.
+        </td>
+      </tr>
+    `;
+
+    return;
+
+  }
+
+
+  filtered.forEach(item => {
+
+    const row =
+      document.createElement(
+        "tr"
+      );
+
+    row.innerHTML = `
+      <td>
+        ${escapeHtml(item.date)}
+      </td>
+
+      <td>
+        <span class="type-badge">
+          ${escapeHtml(item.type)}
+        </span>
+      </td>
 
       <td>
         ${escapeHtml(item.category)}
       </td>
 
       <td>
-        ${formatMoney(item.budget)}
+        ${escapeHtml(
+          item.paymentMethod ||
+          "-"
+        )}
       </td>
 
       <td>
-        ${formatMoney(item.used)}
+        <strong>
+          ${formatMoney(item.amount)}
+        </strong>
       </td>
 
-      <td class="${remainingClass}">
-        ${formatMoney(item.remaining)}
+      <td>
+        ${escapeHtml(
+          item.memo ||
+          "-"
+        )}
       </td>
 
-      <td class="warning-text">
-        ${escapeHtml(statusText)}
+      <td>
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="edit-transaction"
+          data-id="${escapeHtml(item.id)}"
+        >
+          수정
+        </button>
       </td>
-
     `;
 
-    tbody.appendChild(row);
+    tbody.appendChild(
+      row
+    );
 
   });
 
@@ -892,41 +2014,236 @@ function renderBudgets(items) {
 
 
 /*************************************************
- * 자산 등록
+ * 거래 수정
  *************************************************/
 
-async function addAsset(event) {
+function handleTransactionTableClick(
+  event
+) {
+
+  const button =
+    event.target.closest(
+      '[data-action="edit-transaction"]'
+    );
+
+  if (!button) {
+    return;
+  }
+
+  openTransactionEditModal(
+    button.dataset.id
+  );
+
+}
+
+
+function openTransactionEditModal(
+  id
+) {
+
+  const item =
+    currentTransactions.find(
+      transaction =>
+        transaction.id === id
+    );
+
+  if (!item) {
+
+    alert(
+      "거래내역을 찾을 수 없습니다."
+    );
+
+    return;
+
+  }
+
+
+  $("editTransactionId").value =
+    item.id;
+
+  $("editTransactionDate").value =
+    item.date;
+
+  $("editTransactionType").value =
+    item.type;
+
+  renderEditTransactionCategories(
+    item.category
+  );
+
+  $("editPaymentMethod").value =
+    item.paymentMethod ||
+    "카드";
+
+  $("editTransactionAmount").value =
+    item.amount;
+
+  $("editTransactionMemo").value =
+    item.memo || "";
+
+
+  updatePaymentVisibility(
+    "editTransactionType",
+    "editPaymentMethodGroup"
+  );
+
+  clearMessage(
+    $("editTransactionMessage")
+  );
+
+  openModal(
+    "transactionEditModal"
+  );
+
+}
+
+
+function closeTransactionEditModal() {
+
+  closeModal(
+    "transactionEditModal"
+  );
+
+}
+
+
+async function submitTransactionEdit(
+  event
+) {
 
   event.preventDefault();
 
-  const messageElement =
-    document.getElementById(
-      "assetMessage"
+  const type =
+    $("editTransactionType")
+      .value;
+
+  const data = {
+
+    id:
+      $("editTransactionId").value,
+
+    date:
+      $("editTransactionDate").value,
+
+    type,
+
+    category:
+      $("editTransactionCategory")
+        .value,
+
+    paymentMethod:
+      type === "지출"
+        ? $("editPaymentMethod").value
+        : "",
+
+    amount:
+      Number(
+        $("editTransactionAmount")
+          .value
+      ),
+
+    memo:
+      $("editTransactionMemo")
+        .value
+        .trim()
+
+  };
+
+
+  try {
+
+    await apiPost(
+      "updateTransaction",
+      data
     );
 
-  clearMessage(messageElement);
+    closeTransactionEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editTransactionMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+async function deleteCurrentTransaction() {
+
+  const id =
+    $("editTransactionId")
+      .value;
+
+  if (!id) {
+    return;
+  }
+
+  if (
+    !confirm(
+      "이 거래를 삭제할까요?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    await apiPost(
+      "deleteTransaction",
+      {
+        id
+      }
+    );
+
+    closeTransactionEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editTransactionMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 자산
+ *************************************************/
+
+async function addAsset(
+  event
+) {
+
+  event.preventDefault();
 
   const data = {
 
     category:
-      document.getElementById(
-        "assetCategory"
-      ).value,
+      $("assetCategory").value,
 
     name:
-      document.getElementById(
-        "assetName"
-      ).value.trim(),
+      $("assetName")
+        .value
+        .trim(),
 
     amount:
       Number(
-        document.getElementById(
-          "assetAmount"
-        ).value
+        $("assetAmount").value
       )
 
   };
-
 
   try {
 
@@ -936,25 +2253,23 @@ async function addAsset(event) {
     );
 
     showMessage(
-      messageElement,
+      $("assetMessage"),
       "자산이 등록되었습니다.",
       "success"
     );
 
-    document.getElementById(
-      "assetName"
-    ).value = "";
+    $("assetName").value =
+      "";
 
-    document.getElementById(
-      "assetAmount"
-    ).value = "";
+    $("assetAmount").value =
+      "";
 
     await loadDashboard();
 
   } catch (error) {
 
     showMessage(
-      messageElement,
+      $("assetMessage"),
       error.message,
       "error"
     );
@@ -964,20 +2279,15 @@ async function addAsset(event) {
 }
 
 
-/*************************************************
- * 자산 출력
- *************************************************/
-
 function renderAssets(items) {
 
   const container =
-    document.getElementById(
-      "assetList"
-    );
+    $("assetList");
 
-  container.innerHTML = "";
+  container.innerHTML =
+    "";
 
-  if (items.length === 0) {
+  if (!items.length) {
 
     container.innerHTML =
       '<div class="empty-message">' +
@@ -988,32 +2298,901 @@ function renderAssets(items) {
 
   }
 
+
   items.forEach(item => {
 
     const row =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
-    row.className = "data-row";
+    row.className =
+      "data-row";
 
     row.innerHTML = `
+      <div class="item-main">
 
-      <div>
-        <strong>
+        <div class="item-title">
           ${escapeHtml(item.name)}
-        </strong>
+        </div>
 
-        <div>
+        <div class="item-sub">
           ${escapeHtml(item.category)}
         </div>
+
       </div>
 
-      <strong>
-        ${formatMoney(item.amount)}
-      </strong>
+      <div class="item-actions">
 
+        <strong>
+          ${formatMoney(item.amount)}
+        </strong>
+
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="edit-asset"
+          data-id="${escapeHtml(item.id)}"
+        >
+          수정
+        </button>
+
+      </div>
     `;
 
-    container.appendChild(row);
+    container.appendChild(
+      row
+    );
+
+  });
+
+}
+
+
+function renderAssetSummaryByCategory(
+  items
+) {
+
+  const container =
+    $("assetSummaryByCategory");
+
+  container.innerHTML =
+    "";
+
+  if (!items.length) {
+
+    container.classList.add(
+      "hidden"
+    );
+
+    return;
+
+  }
+
+
+  const totals = {};
+
+  items.forEach(item => {
+
+    totals[item.category] =
+      (
+        totals[item.category] ||
+        0
+      ) +
+      Number(
+        item.amount || 0
+      );
+
+  });
+
+
+  container.classList.remove(
+    "hidden"
+  );
+
+
+  Object.entries(totals)
+    .sort(
+      (
+        [, a],
+        [, b]
+      ) =>
+        b - a
+    )
+    .forEach(
+      ([category, amount]) => {
+
+        const row =
+          document.createElement(
+            "div"
+          );
+
+        row.className =
+          "mini-summary-row";
+
+        row.innerHTML = `
+          <span>
+            ${escapeHtml(category)}
+          </span>
+
+          <strong>
+            ${formatMoney(amount)}
+          </strong>
+        `;
+
+        container.appendChild(
+          row
+        );
+
+      }
+    );
+
+}
+
+
+function handleAssetListClick(
+  event
+) {
+
+  const button =
+    event.target.closest(
+      '[data-action="edit-asset"]'
+    );
+
+  if (!button) {
+    return;
+  }
+
+  openAssetEditModal(
+    button.dataset.id
+  );
+
+}
+
+
+function openAssetEditModal(id) {
+
+  const item =
+    currentAssets.find(
+      asset =>
+        asset.id === id
+    );
+
+  if (!item) {
+
+    alert(
+      "자산을 찾을 수 없습니다."
+    );
+
+    return;
+
+  }
+
+  $("editAssetId").value =
+    item.id;
+
+  $("editAssetCategory").value =
+    item.category;
+
+  $("editAssetName").value =
+    item.name;
+
+  $("editAssetAmount").value =
+    item.amount;
+
+  clearMessage(
+    $("editAssetMessage")
+  );
+
+  openModal(
+    "assetEditModal"
+  );
+
+}
+
+
+function closeAssetEditModal() {
+
+  closeModal(
+    "assetEditModal"
+  );
+
+}
+
+
+async function submitAssetEdit(
+  event
+) {
+
+  event.preventDefault();
+
+  const data = {
+
+    id:
+      $("editAssetId").value,
+
+    category:
+      $("editAssetCategory").value,
+
+    name:
+      $("editAssetName")
+        .value
+        .trim(),
+
+    amount:
+      Number(
+        $("editAssetAmount").value
+      )
+
+  };
+
+  try {
+
+    await apiPost(
+      "updateAsset",
+      data
+    );
+
+    closeAssetEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editAssetMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+async function deleteCurrentAsset() {
+
+  const id =
+    $("editAssetId").value;
+
+  if (
+    !id ||
+    !confirm(
+      "이 자산을 삭제할까요?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    await apiPost(
+      "deleteAsset",
+      {
+        id
+      }
+    );
+
+    closeAssetEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editAssetMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 부채
+ *************************************************/
+
+async function addDebt(
+  event
+) {
+
+  event.preventDefault();
+
+  const data = {
+
+    category:
+      $("debtCategory").value,
+
+    name:
+      $("debtName")
+        .value
+        .trim(),
+
+    amount:
+      Number(
+        $("debtAmount").value
+      )
+
+  };
+
+  try {
+
+    await apiPost(
+      "addDebt",
+      data
+    );
+
+    showMessage(
+      $("debtMessage"),
+      "부채가 등록되었습니다.",
+      "success"
+    );
+
+    $("debtName").value =
+      "";
+
+    $("debtAmount").value =
+      "";
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("debtMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+function renderDebts(items) {
+
+  const container =
+    $("debtList");
+
+  container.innerHTML =
+    "";
+
+  if (!items.length) {
+
+    container.innerHTML =
+      '<div class="empty-message">' +
+      '등록된 부채가 없습니다.' +
+      '</div>';
+
+    return;
+
+  }
+
+
+  items.forEach(item => {
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+    row.className =
+      "data-row";
+
+    row.innerHTML = `
+      <div class="item-main">
+
+        <div class="item-title">
+          ${escapeHtml(item.name)}
+        </div>
+
+        <div class="item-sub">
+          ${escapeHtml(item.category)}
+        </div>
+
+      </div>
+
+      <div class="item-actions">
+
+        <strong>
+          ${formatMoney(item.amount)}
+        </strong>
+
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="edit-debt"
+          data-id="${escapeHtml(item.id)}"
+        >
+          수정
+        </button>
+
+      </div>
+    `;
+
+    container.appendChild(
+      row
+    );
+
+  });
+
+}
+
+
+function handleDebtListClick(
+  event
+) {
+
+  const button =
+    event.target.closest(
+      '[data-action="edit-debt"]'
+    );
+
+  if (!button) {
+    return;
+  }
+
+  openDebtEditModal(
+    button.dataset.id
+  );
+
+}
+
+
+function openDebtEditModal(id) {
+
+  const item =
+    currentDebts.find(
+      debt =>
+        debt.id === id
+    );
+
+  if (!item) {
+
+    alert(
+      "부채를 찾을 수 없습니다."
+    );
+
+    return;
+
+  }
+
+  $("editDebtId").value =
+    item.id;
+
+  $("editDebtCategory").value =
+    item.category;
+
+  $("editDebtName").value =
+    item.name;
+
+  $("editDebtAmount").value =
+    item.amount;
+
+  clearMessage(
+    $("editDebtMessage")
+  );
+
+  openModal(
+    "debtEditModal"
+  );
+
+}
+
+
+function closeDebtEditModal() {
+
+  closeModal(
+    "debtEditModal"
+  );
+
+}
+
+
+async function submitDebtEdit(
+  event
+) {
+
+  event.preventDefault();
+
+  const data = {
+
+    id:
+      $("editDebtId").value,
+
+    category:
+      $("editDebtCategory").value,
+
+    name:
+      $("editDebtName")
+        .value
+        .trim(),
+
+    amount:
+      Number(
+        $("editDebtAmount").value
+      )
+
+  };
+
+  try {
+
+    await apiPost(
+      "updateDebt",
+      data
+    );
+
+    closeDebtEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editDebtMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+async function deleteCurrentDebt() {
+
+  const id =
+    $("editDebtId").value;
+
+  if (
+    !id ||
+    !confirm(
+      "이 부채를 삭제할까요?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    await apiPost(
+      "deleteDebt",
+      {
+        id
+      }
+    );
+
+    closeDebtEditModal();
+
+    await loadDashboard();
+
+  } catch (error) {
+
+    showMessage(
+      $("editDebtMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 자산 / 부채 / 순자산
+ *************************************************/
+
+function renderWealthSummary() {
+
+  const totalAssets =
+    currentAssets.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.amount || 0
+        ),
+      0
+    );
+
+
+  const totalDebts =
+    currentDebts.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.amount || 0
+        ),
+      0
+    );
+
+
+  const netWorth =
+    totalAssets -
+    totalDebts;
+
+
+  $("totalAssets").textContent =
+    formatMoney(
+      totalAssets
+    );
+
+  $("totalDebts").textContent =
+    formatMoney(
+      totalDebts
+    );
+
+  $("netWorth").textContent =
+    formatMoney(
+      netWorth
+    );
+
+  $("netWorthDetail").textContent =
+    formatMoney(
+      netWorth
+    );
+
+
+  $("netWorth").className =
+    netWorth < 0
+      ? "negative"
+      : "";
+
+  $("netWorthDetail").className =
+    netWorth < 0
+      ? "negative"
+      : "";
+
+}
+
+
+/*************************************************
+ * 반복거래 조회
+ *************************************************/
+
+async function loadRecurringTransactions() {
+
+  try {
+
+    const response =
+      await apiGet(
+        "getRecurringTransactions"
+      );
+
+    recurringItems =
+      response.data || [];
+
+    renderRecurringTable();
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
+
+
+/*************************************************
+ * 반복거래 저장
+ *************************************************/
+
+async function saveRecurringTransaction(
+  event
+) {
+
+  event.preventDefault();
+
+  const id =
+    $("recurringId").value;
+
+  const type =
+    $("recurringType").value;
+
+
+  const data = {
+
+    id,
+
+    frequency:
+      $("recurringFrequency")
+        .value,
+
+    startDate:
+      $("recurringStartDate")
+        .value,
+
+    type,
+
+    category:
+      $("recurringCategory")
+        .value,
+
+    paymentMethod:
+      type === "지출"
+        ? $("recurringPaymentMethod")
+            .value
+        : "",
+
+    amount:
+      Number(
+        $("recurringAmount")
+          .value
+      ),
+
+    memo:
+      $("recurringMemo")
+        .value
+        .trim(),
+
+    active:
+      true
+
+  };
+
+
+  try {
+
+    if (id) {
+
+      await apiPost(
+        "updateRecurringTransaction",
+        data
+      );
+
+      showMessage(
+        $("recurringMessage"),
+        "반복거래가 수정되었습니다.",
+        "success"
+      );
+
+    } else {
+
+      await apiPost(
+        "addRecurringTransaction",
+        data
+      );
+
+      showMessage(
+        $("recurringMessage"),
+        "반복거래가 등록되었습니다.",
+        "success"
+      );
+
+    }
+
+    resetRecurringForm(false);
+
+    await Promise.all([
+      loadRecurringTransactions(),
+      loadDashboard()
+    ]);
+
+  } catch (error) {
+
+    showMessage(
+      $("recurringMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 반복거래 목록
+ *************************************************/
+
+function renderRecurringTable() {
+
+  const tbody =
+    $("recurringTableBody");
+
+  tbody.innerHTML =
+    "";
+
+  if (!recurringItems.length) {
+
+    tbody.innerHTML = `
+      <tr>
+        <td
+          colspan="8"
+          class="empty-message"
+        >
+          등록된 반복거래가 없습니다.
+        </td>
+      </tr>
+    `;
+
+    return;
+
+  }
+
+
+  recurringItems.forEach(item => {
+
+    const row =
+      document.createElement(
+        "tr"
+      );
+
+    row.innerHTML = `
+      <td>
+        <span class="frequency-badge">
+          ${
+            item.frequency ===
+            "YEARLY"
+              ? "매년"
+              : "매월"
+          }
+        </span>
+      </td>
+
+      <td>
+        ${escapeHtml(item.startDate)}
+      </td>
+
+      <td>
+        <span class="type-badge">
+          ${escapeHtml(item.type)}
+        </span>
+      </td>
+
+      <td>
+        ${escapeHtml(item.category)}
+      </td>
+
+      <td>
+        ${formatMoney(item.amount)}
+      </td>
+
+      <td>
+        ${escapeHtml(
+          item.memo ||
+          "-"
+        )}
+      </td>
+
+      <td>
+        <span class="status-badge">
+          ${
+            item.active === false
+              ? "중지"
+              : "사용"
+          }
+        </span>
+      </td>
+
+      <td>
+
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="edit-recurring"
+          data-id="${escapeHtml(item.id)}"
+        >
+          수정
+        </button>
+
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="delete-recurring"
+          data-id="${escapeHtml(item.id)}"
+        >
+          삭제
+        </button>
+
+      </td>
+    `;
+
+    tbody.appendChild(
+      row
+    );
 
   });
 
@@ -1021,7 +3200,265 @@ function renderAssets(items) {
 
 
 /*************************************************
- * GET 요청
+ * 반복거래 수정 / 삭제
+ *************************************************/
+
+function handleRecurringTableClick(
+  event
+) {
+
+  const edit =
+    event.target.closest(
+      '[data-action="edit-recurring"]'
+    );
+
+  if (edit) {
+
+    startRecurringEdit(
+      edit.dataset.id
+    );
+
+    return;
+
+  }
+
+
+  const remove =
+    event.target.closest(
+      '[data-action="delete-recurring"]'
+    );
+
+  if (remove) {
+
+    deleteRecurringTransaction(
+      remove.dataset.id
+    );
+
+  }
+
+}
+
+
+function startRecurringEdit(id) {
+
+  const item =
+    recurringItems.find(
+      recurring =>
+        recurring.id === id
+    );
+
+  if (!item) {
+
+    alert(
+      "반복거래를 찾을 수 없습니다."
+    );
+
+    return;
+
+  }
+
+
+  $("recurringId").value =
+    item.id;
+
+  $("recurringFrequency").value =
+    item.frequency;
+
+  $("recurringStartDate").value =
+    item.startDate;
+
+  $("recurringType").value =
+    item.type;
+
+
+  renderRecurringCategories(
+    item.category
+  );
+
+
+  $("recurringPaymentMethod").value =
+    item.paymentMethod ||
+    "카드";
+
+  $("recurringAmount").value =
+    item.amount;
+
+  $("recurringMemo").value =
+    item.memo || "";
+
+
+  $("recurringSubmitText")
+    .textContent =
+      "반복거래 수정";
+
+
+  $("cancelRecurringEditButton")
+    .classList
+    .remove("hidden");
+
+
+  updatePaymentVisibility(
+    "recurringType",
+    "recurringPaymentMethodGroup"
+  );
+
+
+  $("recurringForm")
+    .scrollIntoView({
+      behavior:
+        "smooth",
+      block:
+        "start"
+    });
+
+}
+
+
+function resetRecurringForm(
+  clearMessageToo = true
+) {
+
+  $("recurringId").value =
+    "";
+
+  $("recurringFrequency").value =
+    "MONTHLY";
+
+  $("recurringStartDate").value =
+    formatDateForInput(
+      new Date()
+    );
+
+  $("recurringType").value =
+    "지출";
+
+  renderRecurringCategories();
+
+  $("recurringPaymentMethod").value =
+    "카드";
+
+  $("recurringAmount").value =
+    "";
+
+  $("recurringMemo").value =
+    "";
+
+  $("recurringSubmitText")
+    .textContent =
+      "반복거래 등록";
+
+  $("cancelRecurringEditButton")
+    .classList
+    .add("hidden");
+
+
+  updatePaymentVisibility(
+    "recurringType",
+    "recurringPaymentMethodGroup"
+  );
+
+
+  if (clearMessageToo) {
+
+    clearMessage(
+      $("recurringMessage")
+    );
+
+  }
+
+}
+
+
+async function deleteRecurringTransaction(
+  id
+) {
+
+  if (
+    !confirm(
+      "이 반복거래를 삭제할까요?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    await apiPost(
+      "deleteRecurringTransaction",
+      {
+        id
+      }
+    );
+
+    await Promise.all([
+      loadRecurringTransactions(),
+      loadDashboard()
+    ]);
+
+  } catch (error) {
+
+    alert(error.message);
+
+  }
+
+}
+
+
+/*************************************************
+ * 모달
+ *************************************************/
+
+function openModal(id) {
+
+  $(id)
+    .classList
+    .remove("hidden");
+
+  document.body
+    .classList
+    .add("modal-open");
+
+}
+
+
+function closeModal(id) {
+
+  const modal =
+    $(id);
+
+  if (
+    !modal ||
+    modal.classList.contains(
+      "hidden"
+    )
+  ) {
+    return;
+  }
+
+  modal.classList.add(
+    "hidden"
+  );
+
+
+  if (
+    document.querySelectorAll(
+      ".modal:not(.hidden)"
+    ).length === 0
+  ) {
+
+    document.body
+      .classList
+      .remove(
+        "modal-open"
+      );
+
+  }
+
+}
+
+
+/*************************************************
+ * API GET
  *************************************************/
 
 async function apiGet(
@@ -1040,32 +3477,40 @@ async function apiGet(
   );
 
   Object.entries(params)
-    .forEach(([key, value]) => {
+    .forEach(
+      ([key, value]) => {
 
-      url.searchParams.set(
-        key,
-        value
-      );
+        url.searchParams.set(
+          key,
+          value
+        );
 
-    });
+      }
+    );
 
 
   const response =
     await fetch(
       url.toString(),
       {
-        method: "GET",
-        redirect: "follow"
+        method:
+          "GET",
+
+        redirect:
+          "follow"
       }
     );
 
-  return parseApiResponse(response);
+
+  return parseApiResponse(
+    response
+  );
 
 }
 
 
 /*************************************************
- * POST 요청
+ * API POST
  *************************************************/
 
 async function apiPost(
@@ -1075,56 +3520,56 @@ async function apiPost(
 
   checkApiUrl();
 
-  /*
-   * 중요:
-   *
-   * application/json 대신 text/plain 사용.
-   *
-   * GitHub Pages / Cloudflare Pages 등
-   * 다른 도메인에서 Apps Script에 요청할 때
-   * 불필요한 OPTIONS preflight를 피하기 위한 방식.
-   *
-   * 실제 내용은 JSON 문자열.
-   */
 
   const response =
     await fetch(
       API_URL,
       {
-        method: "POST",
+        method:
+          "POST",
 
-        redirect: "follow",
+        redirect:
+          "follow",
 
         headers: {
           "Content-Type":
             "text/plain;charset=UTF-8"
         },
 
-        body: JSON.stringify({
-          action,
-          data
-        })
+        body:
+          JSON.stringify({
+            action,
+            data
+          })
       }
     );
 
-  return parseApiResponse(response);
+
+  return parseApiResponse(
+    response
+  );
 
 }
 
 
 /*************************************************
- * API 응답 처리
+ * API 응답
  *************************************************/
 
-async function parseApiResponse(response) {
+async function parseApiResponse(
+  response
+) {
 
   if (!response.ok) {
 
     throw new Error(
-      `HTTP 오류: ${response.status}`
+      `HTTP 오류: ${
+        response.status
+      }`
     );
 
   }
+
 
   let result;
 
@@ -1141,6 +3586,7 @@ async function parseApiResponse(response) {
 
   }
 
+
   if (!result.success) {
 
     throw new Error(
@@ -1150,14 +3596,11 @@ async function parseApiResponse(response) {
 
   }
 
+
   return result;
 
 }
 
-
-/*************************************************
- * API URL 확인
- *************************************************/
 
 function checkApiUrl() {
 
@@ -1168,8 +3611,7 @@ function checkApiUrl() {
   ) {
 
     throw new Error(
-      "app.js의 API_URL에 " +
-      "Apps Script Web App 주소를 입력해주세요."
+      "app.js의 API_URL에 Apps Script Web App 주소를 입력해주세요."
     );
 
   }
@@ -1178,7 +3620,7 @@ function checkApiUrl() {
 
 
 /*************************************************
- * 메시지 출력
+ * 메시지
  *************************************************/
 
 function showMessage(
@@ -1187,7 +3629,8 @@ function showMessage(
   type
 ) {
 
-  element.textContent = message;
+  element.textContent =
+    message;
 
   element.className =
     `message ${type}`;
@@ -1195,21 +3638,21 @@ function showMessage(
 }
 
 
-/*************************************************
- * 메시지 초기화
- *************************************************/
+function clearMessage(
+  element
+) {
 
-function clearMessage(element) {
+  element.textContent =
+    "";
 
-  element.textContent = "";
-
-  element.className = "message";
+  element.className =
+    "message";
 
 }
 
 
 /*************************************************
- * 원화 표시
+ * 표시 유틸
  *************************************************/
 
 function formatMoney(value) {
@@ -1218,18 +3661,39 @@ function formatMoney(value) {
     Number(value) || 0;
 
   return (
-    amount.toLocaleString("ko-KR") +
+    amount.toLocaleString(
+      "ko-KR"
+    ) +
     "원"
   );
 
 }
 
 
-/*************************************************
- * 날짜 input 형식 변환
- *************************************************/
+function formatPercent(value) {
 
-function formatDateForInput(date) {
+  const number =
+    Number(value) || 0;
+
+  if (
+    Number.isInteger(number)
+  ) {
+    return String(number);
+  }
+
+  return number
+    .toFixed(1)
+    .replace(
+      /\.0$/,
+      ""
+    );
+
+}
+
+
+function formatDateForInput(
+  date
+) {
 
   const year =
     date.getFullYear();
@@ -1237,29 +3701,52 @@ function formatDateForInput(date) {
   const month =
     String(
       date.getMonth() + 1
-    ).padStart(2, "0");
+    ).padStart(
+      2,
+      "0"
+    );
 
   const day =
     String(
       date.getDate()
-    ).padStart(2, "0");
+    ).padStart(
+      2,
+      "0"
+    );
 
-  return `${year}-${month}-${day}`;
+  return (
+    `${year}-` +
+    `${month}-` +
+    `${day}`
+  );
 
 }
 
 
-/*************************************************
- * HTML Escape
- *************************************************/
-
 function escapeHtml(value) {
 
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 
 }
