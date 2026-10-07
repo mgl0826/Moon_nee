@@ -1,7 +1,11 @@
 /*************************************************
  * 우리 가계부
  * Frontend JavaScript
- * 4~6단계 통합본
+ *************************************************/
+
+
+/*************************************************
+ * API
  *************************************************/
 
 const API_URL =
@@ -18,13 +22,30 @@ let currentAssets = [];
 let currentDebts = [];
 let recurringItems = [];
 
+let editingBudgetCategory = "";
+
 
 /*************************************************
- * 공통 DOM
+ * DOM helper
  *************************************************/
 
 const $ = id =>
   document.getElementById(id);
+
+
+/*************************************************
+ * 색상 기본값
+ *************************************************/
+
+const DEFAULT_TYPE_COLORS = {
+
+  income: "#2e7d32",
+
+  expense: "#c62828",
+
+  saving: "#1565c0"
+
+};
 
 
 /*************************************************
@@ -36,8 +57,11 @@ document.addEventListener(
   async () => {
 
     setDefaultDates();
+
     bindNavigation();
     bindEvents();
+
+    loadTypeColors();
 
     updatePaymentVisibility(
       "transactionType",
@@ -53,6 +77,8 @@ document.addEventListener(
       "recurringType",
       "recurringPaymentMethodGroup"
     );
+
+    updateScrollTopButton();
 
     try {
 
@@ -79,7 +105,8 @@ document.addEventListener(
 
 function setDefaultDates() {
 
-  const today = new Date();
+  const today =
+    new Date();
 
   $("transactionDate").value =
     formatDateForInput(today);
@@ -116,15 +143,21 @@ function bindNavigation() {
           showPage(pageId);
 
           if (
-            pageId === "dashboardPage"
+            pageId ===
+            "dashboardPage"
           ) {
+
             await loadDashboard();
+
           }
 
           if (
-            pageId === "recurringPage"
+            pageId ===
+            "recurringPage"
           ) {
+
             await loadRecurringTransactions();
+
           }
 
         }
@@ -139,25 +172,39 @@ function showPage(pageId) {
 
   document
     .querySelectorAll(".page")
-    .forEach(page =>
-      page.classList.remove("active")
-    );
+    .forEach(page => {
+
+      page.classList.remove(
+        "active"
+      );
+
+    });
 
   document
     .querySelectorAll(".nav-btn")
-    .forEach(button =>
-      button.classList.remove("active")
-    );
+    .forEach(button => {
 
-  $(pageId).classList.add("active");
+      button.classList.remove(
+        "active"
+      );
 
-  const button =
+    });
+
+  $(pageId)
+    .classList
+    .add("active");
+
+  const navButton =
     document.querySelector(
       `[data-page="${pageId}"]`
     );
 
-  if (button) {
-    button.classList.add("active");
+  if (navButton) {
+
+    navButton
+      .classList
+      .add("active");
+
   }
 
 }
@@ -168,6 +215,11 @@ function showPage(pageId) {
  *************************************************/
 
 function bindEvents() {
+
+
+  /**********************
+   * 거래 입력
+   **********************/
 
   $("transactionType")
     .addEventListener(
@@ -199,12 +251,23 @@ function bindEvents() {
     );
 
 
+  $("deleteSelectedCategoryButton")
+    .addEventListener(
+      "click",
+      deleteSelectedTransactionCategory
+    );
+
+
   $("transactionForm")
     .addEventListener(
       "submit",
       submitTransaction
     );
 
+
+  /**********************
+   * 대시보드
+   **********************/
 
   $("refreshDashboardButton")
     .addEventListener(
@@ -216,16 +279,22 @@ function bindEvents() {
   $("previousMonthButton")
     .addEventListener(
       "click",
-      () => moveDashboardMonth(-1)
+      () =>
+        moveDashboardMonth(-1)
     );
 
 
   $("nextMonthButton")
     .addEventListener(
       "click",
-      () => moveDashboardMonth(1)
+      () =>
+        moveDashboardMonth(1)
     );
 
+
+  /**********************
+   * 예산
+   **********************/
 
   $("budgetForm")
     .addEventListener(
@@ -233,6 +302,31 @@ function bindEvents() {
       saveBudget
     );
 
+
+  $("budgetTableBody")
+    .addEventListener(
+      "click",
+      handleBudgetTableClick
+    );
+
+
+  $("addBudgetCategoryButton")
+    .addEventListener(
+      "click",
+      addBudgetCategory
+    );
+
+
+  $("budgetCategoryManagerList")
+    .addEventListener(
+      "click",
+      handleBudgetCategoryManagerClick
+    );
+
+
+  /**********************
+   * 거래 필터
+   **********************/
 
   $("transactionFilterType")
     .addEventListener(
@@ -259,6 +353,10 @@ function bindEvents() {
       handleTransactionTableClick
     );
 
+
+  /**********************
+   * 거래 수정
+   **********************/
 
   $("editTransactionType")
     .addEventListener(
@@ -304,6 +402,10 @@ function bindEvents() {
     );
 
 
+  /**********************
+   * 자산
+   **********************/
+
   $("assetForm")
     .addEventListener(
       "submit",
@@ -345,6 +447,10 @@ function bindEvents() {
       closeAssetEditModal
     );
 
+
+  /**********************
+   * 부채
+   **********************/
 
   $("debtForm")
     .addEventListener(
@@ -388,6 +494,10 @@ function bindEvents() {
     );
 
 
+  /**********************
+   * 반복거래
+   **********************/
+
   $("recurringType")
     .addEventListener(
       "change",
@@ -425,27 +535,48 @@ function bindEvents() {
     );
 
 
+  /**********************
+   * 모달
+   **********************/
+
   document
-    .querySelectorAll(".modal-backdrop")
+    .querySelectorAll(
+      ".modal-backdrop"
+    )
     .forEach(backdrop => {
 
       backdrop.addEventListener(
         "click",
         event => {
 
-          const type =
-            event.currentTarget.dataset.closeModal;
+          const target =
+            event
+              .currentTarget
+              .dataset
+              .closeModal;
 
-          if (type === "transaction") {
+          if (
+            target === "transaction"
+          ) {
+
             closeTransactionEditModal();
+
           }
 
-          if (type === "asset") {
+          if (
+            target === "asset"
+          ) {
+
             closeAssetEditModal();
+
           }
 
-          if (type === "debt") {
+          if (
+            target === "debt"
+          ) {
+
             closeDebtEditModal();
+
           }
 
         }
@@ -458,8 +589,12 @@ function bindEvents() {
     "keydown",
     event => {
 
-      if (event.key !== "Escape") {
+      if (
+        event.key !== "Escape"
+      ) {
+
         return;
+
       }
 
       closeTransactionEditModal();
@@ -469,6 +604,62 @@ function bindEvents() {
     }
   );
 
+
+  /**********************
+   * 색상
+   **********************/
+
+  $("incomeColor")
+    .addEventListener(
+      "input",
+      saveTypeColors
+    );
+
+
+  $("expenseColor")
+    .addEventListener(
+      "input",
+      saveTypeColors
+    );
+
+
+  $("savingColor")
+    .addEventListener(
+      "input",
+      saveTypeColors
+    );
+
+
+  $("resetTypeColorsButton")
+    .addEventListener(
+      "click",
+      resetTypeColors
+    );
+
+
+  /**********************
+   * 맨 위로
+   **********************/
+
+  window.addEventListener(
+    "scroll",
+    updateScrollTopButton
+  );
+
+
+  $("scrollTopButton")
+    .addEventListener(
+      "click",
+      () => {
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+
+      }
+    );
+
 }
 
 
@@ -476,7 +667,9 @@ function bindEvents() {
  * 월 이동
  *************************************************/
 
-async function moveDashboardMonth(offset) {
+async function moveDashboardMonth(
+  offset
+) {
 
   let year =
     Number(
@@ -490,14 +683,22 @@ async function moveDashboardMonth(offset) {
 
   month += offset;
 
-  if (month < 1) {
+  if (
+    month < 1
+  ) {
+
     month = 12;
-    year--;
+    year -= 1;
+
   }
 
-  if (month > 12) {
+  if (
+    month > 12
+  ) {
+
     month = 1;
-    year++;
+    year += 1;
+
   }
 
   $("dashboardYear").value =
@@ -505,6 +706,8 @@ async function moveDashboardMonth(offset) {
 
   $("dashboardMonth").value =
     month;
+
+  resetBudgetEdit();
 
   await loadDashboard();
 
@@ -520,18 +723,21 @@ function updatePaymentVisibility(
   groupId
 ) {
 
+  const type =
+    $(typeId).value;
+
   $(groupId)
     .classList
     .toggle(
       "hidden",
-      $(typeId).value !== "지출"
+      type !== "지출"
     );
 
 }
 
 
 /*************************************************
- * 카테고리
+ * 카테고리 조회
  *************************************************/
 
 async function loadCategories() {
@@ -549,9 +755,14 @@ async function loadCategories() {
   renderTransactionFilterCategories();
   renderEditTransactionCategories();
   renderRecurringCategories();
+  renderBudgetCategoryManager();
 
 }
 
+
+/*************************************************
+ * 카테고리 Select
+ *************************************************/
 
 function fillCategorySelect(
   select,
@@ -566,20 +777,27 @@ function fillCategorySelect(
         item.type === type
     );
 
-  select.innerHTML = "";
+  select.innerHTML =
+    "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     const option =
       document.createElement(
         "option"
       );
 
-    option.value = "";
+    option.value =
+      "";
+
     option.textContent =
       emptyText;
 
-    select.appendChild(option);
+    select.appendChild(
+      option
+    );
 
     return;
 
@@ -598,7 +816,9 @@ function fillCategorySelect(
     option.textContent =
       item.category;
 
-    select.appendChild(option);
+    select.appendChild(
+      option
+    );
 
   });
 
@@ -606,10 +826,14 @@ function fillCategorySelect(
     selected &&
     items.some(
       item =>
-        item.category === selected
+        item.category ===
+        selected
     )
   ) {
-    select.value = selected;
+
+    select.value =
+      selected;
+
   }
 
 }
@@ -620,7 +844,7 @@ function renderTransactionCategories() {
   fillCategorySelect(
     $("transactionCategory"),
     $("transactionType").value,
-    "카테고리를 추가해주세요"
+    "카테고리가 없습니다"
   );
 
 }
@@ -628,10 +852,14 @@ function renderTransactionCategories() {
 
 function renderBudgetCategories() {
 
+  const previous =
+    $("budgetCategory").value;
+
   fillCategorySelect(
     $("budgetCategory"),
     "지출",
-    "지출 카테고리가 없습니다"
+    "지출 카테고리가 없습니다",
+    previous
   );
 
 }
@@ -665,10 +893,15 @@ function renderRecurringCategories(
 }
 
 
+/*************************************************
+ * 거래 필터 카테고리
+ *************************************************/
+
 function renderTransactionFilterCategories() {
 
   const type =
-    $("transactionFilterType").value;
+    $("transactionFilterType")
+      .value;
 
   const select =
     $("transactionFilterCategory");
@@ -691,7 +924,9 @@ function renderTransactionFilterCategories() {
           item.category
       );
 
-  [...new Set(names)]
+  [
+    ...new Set(names)
+  ]
     .sort(
       (a, b) =>
         a.localeCompare(
@@ -719,20 +954,25 @@ function renderTransactionFilterCategories() {
     });
 
   if (
-    [...select.options]
-      .some(
-        option =>
-          option.value === previous
-      )
+    [
+      ...select.options
+    ].some(
+      option =>
+        option.value ===
+        previous
+    )
   ) {
-    select.value = previous;
+
+    select.value =
+      previous;
+
   }
 
 }
 
 
 /*************************************************
- * 카테고리 추가
+ * 거래입력 카테고리 추가
  *************************************************/
 
 function toggleCategoryBox() {
@@ -746,7 +986,10 @@ function toggleCategoryBox() {
       .classList
       .contains("hidden")
   ) {
-    $("newCategory").focus();
+
+    $("newCategory")
+      .focus();
+
   }
 
 }
@@ -755,14 +998,17 @@ function toggleCategoryBox() {
 async function addCategory() {
 
   const type =
-    $("transactionType").value;
+    $("transactionType")
+      .value;
 
   const category =
     $("newCategory")
       .value
       .trim();
 
-  if (!category) {
+  if (
+    !category
+  ) {
 
     alert(
       "카테고리명을 입력해주세요."
@@ -796,7 +1042,442 @@ async function addCategory() {
 
   } catch (error) {
 
-    alert(error.message);
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 거래입력 카테고리 삭제
+ *************************************************/
+
+async function deleteSelectedTransactionCategory() {
+
+  const type =
+    $("transactionType")
+      .value;
+
+  const category =
+    $("transactionCategory")
+      .value;
+
+  if (
+    !category
+  ) {
+
+    alert(
+      "삭제할 카테고리를 선택해주세요."
+    );
+
+    return;
+
+  }
+
+  const confirmed =
+    confirm(
+      `"${category}" 카테고리를 삭제할까요?\n\n기존 거래내역은 삭제되지 않습니다.`
+    );
+
+  if (
+    !confirmed
+  ) {
+
+    return;
+
+  }
+
+  try {
+
+    await apiPost(
+      "deleteCategory",
+      {
+        type,
+        category
+      }
+    );
+
+    await loadCategories();
+
+  } catch (error) {
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * 예산 카테고리 관리
+ *************************************************/
+
+function renderBudgetCategoryManager() {
+
+  const container =
+    $("budgetCategoryManagerList");
+
+  container.innerHTML =
+    "";
+
+  const expenseCategories =
+    categories
+      .filter(
+        item =>
+          item.type === "지출"
+      )
+      .sort(
+        (a, b) =>
+          a.category.localeCompare(
+            b.category,
+            "ko"
+          )
+      );
+
+  if (
+    expenseCategories.length === 0
+  ) {
+
+    container.innerHTML =
+      '<div class="empty-message">' +
+      '등록된 지출 카테고리가 없습니다.' +
+      '</div>';
+
+    return;
+
+  }
+
+  expenseCategories
+    .forEach(item => {
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+      row.className =
+        "category-manager-row";
+
+      row.innerHTML = `
+
+        <div class="category-manager-name">
+          ${escapeHtml(item.category)}
+        </div>
+
+        <div class="category-manager-actions">
+
+          <button
+            type="button"
+            class="category-mini-btn"
+            data-action="rename-budget-category"
+            data-category="${escapeHtml(item.category)}"
+          >
+            수정
+          </button>
+
+          <button
+            type="button"
+            class="category-mini-btn delete"
+            data-action="delete-budget-category"
+            data-category="${escapeHtml(item.category)}"
+            title="삭제"
+          >
+            ×
+          </button>
+
+        </div>
+
+      `;
+
+      container.appendChild(
+        row
+      );
+
+    });
+
+}
+
+
+async function addBudgetCategory() {
+
+  const input =
+    $("budgetNewCategory");
+
+  const category =
+    input.value.trim();
+
+  clearMessage(
+    $("budgetCategoryMessage")
+  );
+
+  if (
+    !category
+  ) {
+
+    showMessage(
+      $("budgetCategoryMessage"),
+      "카테고리명을 입력해주세요.",
+      "error"
+    );
+
+    return;
+
+  }
+
+  try {
+
+    await apiPost(
+      "addCategory",
+      {
+        type: "지출",
+        category
+      }
+    );
+
+    input.value =
+      "";
+
+    await loadCategories();
+
+    showMessage(
+      $("budgetCategoryMessage"),
+      "카테고리가 추가되었습니다.",
+      "success"
+    );
+
+  } catch (error) {
+
+    showMessage(
+      $("budgetCategoryMessage"),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+function handleBudgetCategoryManagerClick(
+  event
+) {
+
+  const renameButton =
+    event.target.closest(
+      '[data-action="rename-budget-category"]'
+    );
+
+  if (
+    renameButton
+  ) {
+
+    startBudgetCategoryRename(
+      renameButton.dataset.category,
+      renameButton
+    );
+
+    return;
+
+  }
+
+
+  const deleteButton =
+    event.target.closest(
+      '[data-action="delete-budget-category"]'
+    );
+
+  if (
+    deleteButton
+  ) {
+
+    deleteBudgetCategory(
+      deleteButton.dataset.category
+    );
+
+  }
+
+}
+
+
+function startBudgetCategoryRename(
+  category,
+  button
+) {
+
+  const row =
+    button.closest(
+      ".category-manager-row"
+    );
+
+  if (
+    !row
+  ) {
+
+    return;
+
+  }
+
+  row.innerHTML = `
+
+    <div
+      class="category-edit-inline"
+      style="grid-column:1 / -1;"
+    >
+
+      <input
+        type="text"
+        class="category-inline-input"
+        value="${escapeHtml(category)}"
+        maxlength="30"
+      >
+
+      <button
+        type="button"
+        class="category-mini-btn"
+        data-action="save-category-rename"
+        data-old-category="${escapeHtml(category)}"
+      >
+        저장
+      </button>
+
+      <button
+        type="button"
+        class="category-mini-btn"
+        data-action="cancel-category-rename"
+      >
+        취소
+      </button>
+
+    </div>
+
+  `;
+
+  const input =
+    row.querySelector(
+      ".category-inline-input"
+    );
+
+  input.focus();
+  input.select();
+
+
+  row
+    .querySelector(
+      '[data-action="save-category-rename"]'
+    )
+    .addEventListener(
+      "click",
+      async event => {
+
+        const oldCategory =
+          event
+            .currentTarget
+            .dataset
+            .oldCategory;
+
+        const newCategory =
+          input
+            .value
+            .trim();
+
+        if (
+          !newCategory
+        ) {
+
+          alert(
+            "새 카테고리명을 입력해주세요."
+          );
+
+          return;
+
+        }
+
+        try {
+
+          await apiPost(
+            "renameCategory",
+            {
+              type: "지출",
+              oldCategory,
+              newCategory
+            }
+          );
+
+          await loadCategories();
+
+          await loadDashboard();
+
+        } catch (error) {
+
+          alert(
+            error.message
+          );
+
+        }
+
+      }
+    );
+
+
+  row
+    .querySelector(
+      '[data-action="cancel-category-rename"]'
+    )
+    .addEventListener(
+      "click",
+      renderBudgetCategoryManager
+    );
+
+}
+
+
+async function deleteBudgetCategory(
+  category
+) {
+
+  const confirmed =
+    confirm(
+      `"${category}" 카테고리를 삭제할까요?\n\n기존 거래내역과 기존 예산 기록은 삭제되지 않습니다.`
+    );
+
+  if (
+    !confirmed
+  ) {
+
+    return;
+
+  }
+
+  try {
+
+    await apiPost(
+      "deleteCategory",
+      {
+        type: "지출",
+        category
+      }
+    );
+
+    await loadCategories();
+
+    showMessage(
+      $("budgetCategoryMessage"),
+      "카테고리가 삭제되었습니다.",
+      "success"
+    );
+
+  } catch (error) {
+
+    showMessage(
+      $("budgetCategoryMessage"),
+      error.message,
+      "error"
+    );
 
   }
 
@@ -818,17 +1499,20 @@ async function submitTransaction(
   );
 
   const type =
-    $("transactionType").value;
+    $("transactionType")
+      .value;
 
   const data = {
 
     date:
-      $("transactionDate").value,
+      $("transactionDate")
+        .value,
 
     type,
 
     category:
-      $("transactionCategory").value,
+      $("transactionCategory")
+        .value,
 
     paymentMethod:
       type === "지출"
@@ -837,7 +1521,8 @@ async function submitTransaction(
 
     amount:
       Number(
-        $("transactionAmount").value
+        $("transactionAmount")
+          .value
       ),
 
     memo:
@@ -854,17 +1539,38 @@ async function submitTransaction(
       data
     );
 
+    $("transactionAmount").value =
+      "";
+
+    $("transactionMemo").value =
+      "";
+
     showMessage(
       $("transactionMessage"),
       "거래가 등록되었습니다.",
       "success"
     );
 
-    $("transactionAmount").value =
-      "";
 
-    $("transactionMemo").value =
-      "";
+    /*************************************
+     * 저장 직후 즉시 화면 반영
+     *************************************/
+
+    const transactionDate =
+      new Date(
+        data.date +
+        "T00:00:00"
+      );
+
+    $("dashboardYear").value =
+      transactionDate
+        .getFullYear();
+
+    $("dashboardMonth").value =
+      transactionDate
+        .getMonth() + 1;
+
+    await loadDashboard();
 
   } catch (error) {
 
@@ -880,19 +1586,21 @@ async function submitTransaction(
 
 
 /*************************************************
- * 대시보드 조회
+ * 대시보드
  *************************************************/
 
 async function loadDashboard() {
 
   const year =
     Number(
-      $("dashboardYear").value
+      $("dashboardYear")
+        .value
     );
 
   const month =
     Number(
-      $("dashboardMonth").value
+      $("dashboardMonth")
+        .value
     );
 
   try {
@@ -952,13 +1660,17 @@ async function loadDashboard() {
 
 
     currentTransactions =
-      transactions.data || [];
+      transactions.data ||
+      [];
+
 
     currentDebts =
-      debts.data || [];
+      debts.data ||
+      [];
 
 
     renderTransactionFilterCategories();
+
     renderTransactionList();
 
     renderDashboardStats(
@@ -972,7 +1684,8 @@ async function loadDashboard() {
     );
 
     renderMonthlyTrendChart(
-      trend.data || []
+      trend.data ||
+      []
     );
 
     renderDebts(
@@ -983,7 +1696,9 @@ async function loadDashboard() {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      error
+    );
 
     alert(
       "대시보드 조회 실패\n" +
@@ -996,58 +1711,78 @@ async function loadDashboard() {
 
 
 /*************************************************
- * 대시보드 렌더링
+ * 대시보드 렌더
  *************************************************/
 
-function renderDashboard(data) {
+function renderDashboard(
+  data
+) {
 
   const summary =
-    data.summary || {};
+    data.summary ||
+    {};
 
-  $("totalIncome").textContent =
-    formatMoney(
-      summary.income
-    );
 
-  $("totalExpense").textContent =
-    formatMoney(
-      summary.expense
-    );
+  $("totalIncome")
+    .textContent =
+      formatMoney(
+        summary.income
+      );
 
-  $("totalSaving").textContent =
-    formatMoney(
-      summary.saving
-    );
 
-  $("totalBalance").textContent =
-    formatMoney(
-      summary.balance
-    );
+  $("totalExpense")
+    .textContent =
+      formatMoney(
+        summary.expense
+      );
+
+
+  $("totalSaving")
+    .textContent =
+      formatMoney(
+        summary.saving
+      );
+
+
+  $("totalBalance")
+    .textContent =
+      formatMoney(
+        summary.balance
+      );
 
 
   currentAssets =
-    data.assets || [];
+    data.assets ||
+    [];
 
 
   renderExpenseCategories(
-    data.expenseCategories || []
+    data.expenseCategories ||
+    []
   );
+
 
   renderBudgets(
-    data.budgets || []
+    data.budgets ||
+    []
   );
 
+
   renderBudgetOverview(
-    data.budgets || []
+    data.budgets ||
+    []
   );
+
 
   renderAssets(
     currentAssets
   );
 
+
   renderAssetSummaryByCategory(
     currentAssets
   );
+
 
   renderWealthSummary();
 
@@ -1055,7 +1790,7 @@ function renderDashboard(data) {
 
 
 /*************************************************
- * 핵심 통계
+ * 통계
  *************************************************/
 
 function renderDashboardStats(
@@ -1065,22 +1800,25 @@ function renderDashboardStats(
   const rate =
     stats.expenseChangeRate;
 
+
   $("expenseChangeRate")
     .textContent =
       rate === null ||
       rate === undefined
         ? "-"
-        : (
-            `${rate > 0 ? "+" : ""}` +
-            `${formatPercent(rate)}%`
-          );
+        : `${
+            rate > 0
+              ? "+"
+              : ""
+          }${formatPercent(rate)}%`;
 
 
   $("previousExpenseText")
     .textContent =
       `전월 ${
         formatMoney(
-          stats.previousExpense || 0
+          stats.previousExpense ||
+          0
         )
       }`;
 
@@ -1088,7 +1826,8 @@ function renderDashboardStats(
   $("dailyExpenseAverage")
     .textContent =
       formatMoney(
-        stats.dailyExpenseAverage || 0
+        stats.dailyExpenseAverage ||
+        0
       );
 
 
@@ -1101,14 +1840,16 @@ function renderDashboardStats(
   $("topExpenseAmount")
     .textContent =
       formatMoney(
-        stats.topExpenseAmount || 0
+        stats.topExpenseAmount ||
+        0
       );
 
 
   $("savingRate")
     .textContent =
       `${formatPercent(
-        stats.savingRate || 0
+        stats.savingRate ||
+        0
       )}%`;
 
 }
@@ -1128,7 +1869,9 @@ function renderExpenseCategories(
   container.innerHTML =
     "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     container.innerHTML =
       '<div class="empty-message">' +
@@ -1150,16 +1893,20 @@ function renderExpenseCategories(
       "data-row";
 
     row.innerHTML = `
+
       <span>
         ${escapeHtml(item.category)}
       </span>
 
-      <strong>
+      <strong class="type-expense">
         ${formatMoney(item.amount)}
       </strong>
+
     `;
 
-    container.appendChild(row);
+    container.appendChild(
+      row
+    );
 
   });
 
@@ -1167,7 +1914,7 @@ function renderExpenseCategories(
 
 
 /*************************************************
- * 지출 도넛 차트
+ * 도넛 차트
  *************************************************/
 
 function renderExpenseDonutChart(
@@ -1185,13 +1932,14 @@ function renderExpenseDonutChart(
       (sum, item) =>
         sum +
         Number(
-          item.amount || 0
+          item.amount ||
+          0
         ),
       0
     );
 
   if (
-    !items.length ||
+    items.length === 0 ||
     total <= 0
   ) {
 
@@ -1204,7 +1952,6 @@ function renderExpenseDonutChart(
 
   }
 
-
   const shades = [
     "#222",
     "#444",
@@ -1216,7 +1963,8 @@ function renderExpenseDonutChart(
     "#ddd"
   ];
 
-  let degree = 0;
+  let degree =
+    0;
 
   const segments =
     items.map(
@@ -1224,7 +1972,8 @@ function renderExpenseDonutChart(
 
         const ratio =
           Number(
-            item.amount || 0
+            item.amount ||
+            0
           ) /
           total;
 
@@ -1234,14 +1983,12 @@ function renderExpenseDonutChart(
         degree +=
           ratio * 360;
 
-        return (
-          `${shades[
+        return `${
+          shades[
             index %
             shades.length
-          ]} ` +
-          `${start}deg ` +
-          `${degree}deg`
-        );
+          ]
+        } ${start}deg ${degree}deg`;
 
       }
     );
@@ -1283,7 +2030,8 @@ function renderExpenseDonutChart(
       const percent =
         (
           Number(
-            item.amount || 0
+            item.amount ||
+            0
           ) /
           total
         ) * 100;
@@ -1297,28 +2045,35 @@ function renderExpenseDonutChart(
         "chart-legend-item";
 
       row.innerHTML = `
+
         <span class="chart-legend-name">
 
           <span
             class="chart-dot"
-            style="background:${
-              shades[
-                index %
-                shades.length
-              ]
-            }"
+            style="
+              background:${
+                shades[
+                  index %
+                  shades.length
+                ]
+              }
+            "
           ></span>
 
           ${escapeHtml(item.category)}
 
         </span>
 
+
         <strong>
           ${formatPercent(percent)}%
         </strong>
+
       `;
 
-      legend.appendChild(row);
+      legend.appendChild(
+        row
+      );
 
     }
   );
@@ -1340,7 +2095,7 @@ function renderExpenseDonutChart(
 
 
 /*************************************************
- * 6개월 추이
+ * 월별 차트
  *************************************************/
 
 function renderMonthlyTrendChart(
@@ -1353,7 +2108,9 @@ function renderMonthlyTrendChart(
   container.innerHTML =
     "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     container.innerHTML =
       '<div class="empty-message">' +
@@ -1371,10 +2128,12 @@ function renderMonthlyTrendChart(
       ...items.flatMap(
         item => [
           Number(
-            item.income || 0
+            item.income ||
+            0
           ),
           Number(
-            item.expense || 0
+            item.expense ||
+            0
           )
         ]
       )
@@ -1423,7 +2182,8 @@ function renderMonthlyTrendChart(
         Math.max(
           2,
           Number(
-            item.income || 0
+            item.income ||
+            0
           ) /
           maxValue *
           100
@@ -1451,7 +2211,8 @@ function renderMonthlyTrendChart(
         Math.max(
           2,
           Number(
-            item.expense || 0
+            item.expense ||
+            0
           ) /
           maxValue *
           100
@@ -1512,21 +2273,36 @@ function renderMonthlyTrendChart(
     "chart-caption";
 
   caption.innerHTML = `
-    <span>
-      <span
-        class="chart-dot"
-        style="background:#333"
-      ></span>
-      수입
-    </span>
 
     <span>
+
       <span
         class="chart-dot"
-        style="background:#999"
+        style="
+          background:
+          var(--income-color)
+        "
       ></span>
-      지출
+
+      수입
+
     </span>
+
+
+    <span>
+
+      <span
+        class="chart-dot"
+        style="
+          background:
+          var(--expense-color)
+        "
+      ></span>
+
+      지출
+
+    </span>
+
   `;
 
 
@@ -1554,7 +2330,8 @@ function renderBudgetOverview(
       (sum, item) =>
         sum +
         Number(
-          item.budget || 0
+          item.budget ||
+          0
         ),
       0
     );
@@ -1565,7 +2342,8 @@ function renderBudgetOverview(
       (sum, item) =>
         sum +
         Number(
-          item.used || 0
+          item.used ||
+          0
         ),
       0
     );
@@ -1649,7 +2427,7 @@ function renderBudgetOverview(
 
 
 /*************************************************
- * 예산 저장
+ * 예산 저장 / 수정
  *************************************************/
 
 async function saveBudget(
@@ -1662,27 +2440,36 @@ async function saveBudget(
     $("budgetMessage")
   );
 
+
+  const category =
+    $("budgetCategory")
+      .value;
+
+
   const data = {
 
     year:
       Number(
-        $("dashboardYear").value
+        $("dashboardYear")
+          .value
       ),
 
     month:
       Number(
-        $("dashboardMonth").value
+        $("dashboardMonth")
+          .value
       ),
 
-    category:
-      $("budgetCategory").value,
+    category,
 
     amount:
       Number(
-        $("budgetAmount").value
+        $("budgetAmount")
+          .value
       )
 
   };
+
 
   try {
 
@@ -1691,14 +2478,28 @@ async function saveBudget(
       data
     );
 
+
+    const wasEditing =
+      Boolean(
+        editingBudgetCategory
+      );
+
+
+    resetBudgetEdit();
+
+
     showMessage(
       $("budgetMessage"),
-      "예산이 저장되었습니다.",
+      wasEditing
+        ? "예산이 수정되었습니다."
+        : "예산이 저장되었습니다.",
       "success"
     );
 
-    $("budgetAmount").value =
-      "";
+
+    /*************************************
+     * 저장 직후 즉시 갱신
+     *************************************/
 
     await loadDashboard();
 
@@ -1729,17 +2530,23 @@ function renderBudgets(
   tbody.innerHTML =
     "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     tbody.innerHTML = `
+
       <tr>
+
         <td
-          colspan="6"
+          colspan="7"
           class="empty-message"
         >
           설정된 예산이 없습니다.
         </td>
+
       </tr>
+
     `;
 
     return;
@@ -1751,17 +2558,20 @@ function renderBudgets(
 
     const budget =
       Number(
-        item.budget || 0
+        item.budget ||
+        0
       );
 
     const used =
       Number(
-        item.used || 0
+        item.used ||
+        0
       );
 
     const remaining =
       Number(
-        item.remaining || 0
+        item.remaining ||
+        0
       );
 
     const rate =
@@ -1786,26 +2596,34 @@ function renderBudgets(
         "tr"
       );
 
+
     row.innerHTML = `
+
       <td>
         ${escapeHtml(item.category)}
       </td>
+
 
       <td>
         ${formatMoney(budget)}
       </td>
 
+
       <td>
         ${formatMoney(used)}
       </td>
 
-      <td class="${
-        remaining < 0
-          ? "negative"
-          : ""
-      }">
+
+      <td
+        class="${
+          remaining < 0
+            ? "negative"
+            : ""
+        }"
+      >
         ${formatMoney(remaining)}
       </td>
+
 
       <td class="budget-progress-cell">
 
@@ -1813,16 +2631,21 @@ function renderBudgets(
           ${formatPercent(rate)}%
         </span>
 
+
         <div class="progress-track">
 
           <div
-            class="progress-fill ${
-              rate > 100
-                ? "progress-over"
-                : ""
-            }"
+            class="
+              progress-fill
+              ${
+                rate > 100
+                  ? "progress-over"
+                  : ""
+              }
+            "
             style="
-              width:${
+              width:
+              ${
                 Math.min(
                   Math.max(
                     rate,
@@ -1838,10 +2661,28 @@ function renderBudgets(
 
       </td>
 
+
       <td class="warning-text">
         ${escapeHtml(status)}
       </td>
+
+
+      <td>
+
+        <button
+          type="button"
+          class="table-action-btn"
+          data-action="edit-budget"
+          data-category="${escapeHtml(item.category)}"
+          data-budget="${budget}"
+        >
+          수정
+        </button>
+
+      </td>
+
     `;
+
 
     tbody.appendChild(
       row
@@ -1852,28 +2693,129 @@ function renderBudgets(
 }
 
 
+function handleBudgetTableClick(
+  event
+) {
+
+  const button =
+    event.target.closest(
+      '[data-action="edit-budget"]'
+    );
+
+  if (
+    !button
+  ) {
+
+    return;
+
+  }
+
+  startBudgetEdit(
+    button.dataset.category,
+    Number(
+      button.dataset.budget
+    )
+  );
+
+}
+
+
+function startBudgetEdit(
+  category,
+  amount
+) {
+
+  editingBudgetCategory =
+    category;
+
+
+  $("budgetCategory").value =
+    category;
+
+
+  $("budgetCategory").disabled =
+    true;
+
+
+  $("budgetAmount").value =
+    amount;
+
+
+  $("budgetSubmitText")
+    .textContent =
+      "수정 저장";
+
+
+  $("budgetAmount")
+    .focus();
+
+
+  $("budgetSettingCard")
+    .scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+}
+
+
+function resetBudgetEdit() {
+
+  editingBudgetCategory =
+    "";
+
+
+  $("budgetCategory").disabled =
+    false;
+
+
+  $("budgetAmount").value =
+    "";
+
+
+  $("budgetSubmitText")
+    .textContent =
+      "저장";
+
+}
+
+
 function getBudgetStatus(
   budget,
   remaining
 ) {
 
-  if (budget <= 0) {
+  if (
+    budget <= 0
+  ) {
+
     return "";
+
   }
 
-  if (remaining < 0) {
+  if (
+    remaining < 0
+  ) {
+
     return "늠쳤따옹!";
+
   }
 
-  if (remaining === 0) {
+  if (
+    remaining === 0
+  ) {
+
     return "다썼따옹!";
+
   }
 
   if (
     remaining <=
     budget * 0.2
   ) {
+
     return "을마안남았따옹!";
+
   }
 
   return "";
@@ -1882,7 +2824,7 @@ function getBudgetStatus(
 
 
 /*************************************************
- * 거래내역
+ * 거래 목록
  *************************************************/
 
 function renderTransactionList() {
@@ -1890,6 +2832,7 @@ function renderTransactionList() {
   const type =
     $("transactionFilterType")
       .value;
+
 
   const category =
     $("transactionFilterCategory")
@@ -1902,16 +2845,22 @@ function renderTransactionList() {
 
         if (
           type &&
-          item.type !== type
+          item.type !==
+          type
         ) {
+
           return false;
+
         }
 
         if (
           category &&
-          item.category !== category
+          item.category !==
+          category
         ) {
+
           return false;
+
         }
 
         return true;
@@ -1932,17 +2881,23 @@ function renderTransactionList() {
     "";
 
 
-  if (!filtered.length) {
+  if (
+    filtered.length === 0
+  ) {
 
     tbody.innerHTML = `
+
       <tr>
+
         <td
           colspan="7"
           class="empty-message"
         >
           조건에 맞는 거래내역이 없습니다.
         </td>
+
       </tr>
+
     `;
 
     return;
@@ -1957,20 +2912,38 @@ function renderTransactionList() {
         "tr"
       );
 
+
+    const typeClass =
+      getTransactionTypeClass(
+        item.type
+      );
+
+
     row.innerHTML = `
+
       <td>
         ${escapeHtml(item.date)}
       </td>
 
+
       <td>
-        <span class="type-badge">
+
+        <span
+          class="
+            type-badge
+            ${typeClass.badge}
+          "
+        >
           ${escapeHtml(item.type)}
         </span>
+
       </td>
+
 
       <td>
         ${escapeHtml(item.category)}
       </td>
+
 
       <td>
         ${escapeHtml(
@@ -1979,11 +2952,17 @@ function renderTransactionList() {
         )}
       </td>
 
+
       <td>
-        <strong>
+
+        <strong
+          class="${typeClass.text}"
+        >
           ${formatMoney(item.amount)}
         </strong>
+
       </td>
+
 
       <td>
         ${escapeHtml(
@@ -1992,7 +2971,9 @@ function renderTransactionList() {
         )}
       </td>
 
+
       <td>
+
         <button
           type="button"
           class="table-action-btn"
@@ -2001,14 +2982,51 @@ function renderTransactionList() {
         >
           수정
         </button>
+
       </td>
+
     `;
+
 
     tbody.appendChild(
       row
     );
 
   });
+
+}
+
+
+function getTransactionTypeClass(
+  type
+) {
+
+  if (
+    type === "수입"
+  ) {
+
+    return {
+      text: "type-income",
+      badge: "type-badge-income"
+    };
+
+  }
+
+  if (
+    type === "저축"
+  ) {
+
+    return {
+      text: "type-saving",
+      badge: "type-badge-saving"
+    };
+
+  }
+
+  return {
+    text: "type-expense",
+    badge: "type-badge-expense"
+  };
 
 }
 
@@ -2026,8 +3044,12 @@ function handleTransactionTableClick(
       '[data-action="edit-transaction"]'
     );
 
-  if (!button) {
+  if (
+    !button
+  ) {
+
     return;
+
   }
 
   openTransactionEditModal(
@@ -2042,12 +3064,16 @@ function openTransactionEditModal(
 ) {
 
   const item =
-    currentTransactions.find(
-      transaction =>
-        transaction.id === id
-    );
+    currentTransactions
+      .find(
+        transaction =>
+          transaction.id ===
+          id
+      );
 
-  if (!item) {
+  if (
+    !item
+  ) {
 
     alert(
       "거래내역을 찾을 수 없습니다."
@@ -2061,25 +3087,32 @@ function openTransactionEditModal(
   $("editTransactionId").value =
     item.id;
 
+
   $("editTransactionDate").value =
     item.date;
 
+
   $("editTransactionType").value =
     item.type;
+
 
   renderEditTransactionCategories(
     item.category
   );
 
+
   $("editPaymentMethod").value =
     item.paymentMethod ||
     "카드";
 
+
   $("editTransactionAmount").value =
     item.amount;
 
+
   $("editTransactionMemo").value =
-    item.memo || "";
+    item.memo ||
+    "";
 
 
   updatePaymentVisibility(
@@ -2087,9 +3120,11 @@ function openTransactionEditModal(
     "editPaymentMethodGroup"
   );
 
+
   clearMessage(
     $("editTransactionMessage")
   );
+
 
   openModal(
     "transactionEditModal"
@@ -2113,17 +3148,21 @@ async function submitTransactionEdit(
 
   event.preventDefault();
 
+
   const type =
     $("editTransactionType")
       .value;
 
+
   const data = {
 
     id:
-      $("editTransactionId").value,
+      $("editTransactionId")
+        .value,
 
     date:
-      $("editTransactionDate").value,
+      $("editTransactionDate")
+        .value,
 
     type,
 
@@ -2157,7 +3196,9 @@ async function submitTransactionEdit(
       data
     );
 
+
     closeTransactionEditModal();
+
 
     await loadDashboard();
 
@@ -2180,8 +3221,12 @@ async function deleteCurrentTransaction() {
     $("editTransactionId")
       .value;
 
-  if (!id) {
+  if (
+    !id
+  ) {
+
     return;
+
   }
 
   if (
@@ -2189,7 +3234,9 @@ async function deleteCurrentTransaction() {
       "이 거래를 삭제할까요?"
     )
   ) {
+
     return;
+
   }
 
   try {
@@ -2201,7 +3248,9 @@ async function deleteCurrentTransaction() {
       }
     );
 
+
     closeTransactionEditModal();
+
 
     await loadDashboard();
 
@@ -2228,10 +3277,12 @@ async function addAsset(
 
   event.preventDefault();
 
+
   const data = {
 
     category:
-      $("assetCategory").value,
+      $("assetCategory")
+        .value,
 
     name:
       $("assetName")
@@ -2240,10 +3291,12 @@ async function addAsset(
 
     amount:
       Number(
-        $("assetAmount").value
+        $("assetAmount")
+          .value
       )
 
   };
+
 
   try {
 
@@ -2252,17 +3305,20 @@ async function addAsset(
       data
     );
 
-    showMessage(
-      $("assetMessage"),
-      "자산이 등록되었습니다.",
-      "success"
-    );
 
     $("assetName").value =
       "";
 
     $("assetAmount").value =
       "";
+
+
+    showMessage(
+      $("assetMessage"),
+      "자산이 등록되었습니다.",
+      "success"
+    );
+
 
     await loadDashboard();
 
@@ -2279,7 +3335,9 @@ async function addAsset(
 }
 
 
-function renderAssets(items) {
+function renderAssets(
+  items
+) {
 
   const container =
     $("assetList");
@@ -2287,7 +3345,9 @@ function renderAssets(items) {
   container.innerHTML =
     "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     container.innerHTML =
       '<div class="empty-message">' +
@@ -2306,10 +3366,13 @@ function renderAssets(items) {
         "div"
       );
 
+
     row.className =
       "data-row";
 
+
     row.innerHTML = `
+
       <div class="item-main">
 
         <div class="item-title">
@@ -2322,11 +3385,13 @@ function renderAssets(items) {
 
       </div>
 
+
       <div class="item-actions">
 
         <strong>
           ${formatMoney(item.amount)}
         </strong>
+
 
         <button
           type="button"
@@ -2338,7 +3403,9 @@ function renderAssets(items) {
         </button>
 
       </div>
+
     `;
+
 
     container.appendChild(
       row
@@ -2359,39 +3426,52 @@ function renderAssetSummaryByCategory(
   container.innerHTML =
     "";
 
-  if (!items.length) {
 
-    container.classList.add(
-      "hidden"
-    );
+  if (
+    items.length === 0
+  ) {
+
+    container
+      .classList
+      .add("hidden");
 
     return;
 
   }
 
 
-  const totals = {};
+  const totals =
+    {};
+
 
   items.forEach(item => {
 
-    totals[item.category] =
+    totals[
+      item.category
+    ] =
       (
-        totals[item.category] ||
+        totals[
+          item.category
+        ] ||
         0
       ) +
       Number(
-        item.amount || 0
+        item.amount ||
+        0
       );
 
   });
 
 
-  container.classList.remove(
-    "hidden"
-  );
+  container
+    .classList
+    .remove("hidden");
 
 
-  Object.entries(totals)
+  Object
+    .entries(
+      totals
+    )
     .sort(
       (
         [, a],
@@ -2400,7 +3480,9 @@ function renderAssetSummaryByCategory(
         b - a
     )
     .forEach(
-      ([category, amount]) => {
+      (
+        [category, amount]
+      ) => {
 
         const row =
           document.createElement(
@@ -2411,6 +3493,7 @@ function renderAssetSummaryByCategory(
           "mini-summary-row";
 
         row.innerHTML = `
+
           <span>
             ${escapeHtml(category)}
           </span>
@@ -2418,6 +3501,7 @@ function renderAssetSummaryByCategory(
           <strong>
             ${formatMoney(amount)}
           </strong>
+
         `;
 
         container.appendChild(
@@ -2439,8 +3523,12 @@ function handleAssetListClick(
       '[data-action="edit-asset"]'
     );
 
-  if (!button) {
+  if (
+    !button
+  ) {
+
     return;
+
   }
 
   openAssetEditModal(
@@ -2450,15 +3538,20 @@ function handleAssetListClick(
 }
 
 
-function openAssetEditModal(id) {
+function openAssetEditModal(
+  id
+) {
 
   const item =
     currentAssets.find(
       asset =>
-        asset.id === id
+        asset.id ===
+        id
     );
 
-  if (!item) {
+  if (
+    !item
+  ) {
 
     alert(
       "자산을 찾을 수 없습니다."
@@ -2467,6 +3560,7 @@ function openAssetEditModal(id) {
     return;
 
   }
+
 
   $("editAssetId").value =
     item.id;
@@ -2480,9 +3574,11 @@ function openAssetEditModal(id) {
   $("editAssetAmount").value =
     item.amount;
 
+
   clearMessage(
     $("editAssetMessage")
   );
+
 
   openModal(
     "assetEditModal"
@@ -2506,13 +3602,15 @@ async function submitAssetEdit(
 
   event.preventDefault();
 
+
   const data = {
 
     id:
       $("editAssetId").value,
 
     category:
-      $("editAssetCategory").value,
+      $("editAssetCategory")
+        .value,
 
     name:
       $("editAssetName")
@@ -2521,10 +3619,12 @@ async function submitAssetEdit(
 
     amount:
       Number(
-        $("editAssetAmount").value
+        $("editAssetAmount")
+          .value
       )
 
   };
+
 
   try {
 
@@ -2561,7 +3661,9 @@ async function deleteCurrentAsset() {
       "이 자산을 삭제할까요?"
     )
   ) {
+
     return;
+
   }
 
   try {
@@ -2600,10 +3702,12 @@ async function addDebt(
 
   event.preventDefault();
 
+
   const data = {
 
     category:
-      $("debtCategory").value,
+      $("debtCategory")
+        .value,
 
     name:
       $("debtName")
@@ -2612,10 +3716,12 @@ async function addDebt(
 
     amount:
       Number(
-        $("debtAmount").value
+        $("debtAmount")
+          .value
       )
 
   };
+
 
   try {
 
@@ -2624,17 +3730,20 @@ async function addDebt(
       data
     );
 
-    showMessage(
-      $("debtMessage"),
-      "부채가 등록되었습니다.",
-      "success"
-    );
 
     $("debtName").value =
       "";
 
     $("debtAmount").value =
       "";
+
+
+    showMessage(
+      $("debtMessage"),
+      "부채가 등록되었습니다.",
+      "success"
+    );
+
 
     await loadDashboard();
 
@@ -2651,7 +3760,9 @@ async function addDebt(
 }
 
 
-function renderDebts(items) {
+function renderDebts(
+  items
+) {
 
   const container =
     $("debtList");
@@ -2659,7 +3770,9 @@ function renderDebts(items) {
   container.innerHTML =
     "";
 
-  if (!items.length) {
+  if (
+    items.length === 0
+  ) {
 
     container.innerHTML =
       '<div class="empty-message">' +
@@ -2681,7 +3794,9 @@ function renderDebts(items) {
     row.className =
       "data-row";
 
+
     row.innerHTML = `
+
       <div class="item-main">
 
         <div class="item-title">
@@ -2694,11 +3809,13 @@ function renderDebts(items) {
 
       </div>
 
+
       <div class="item-actions">
 
         <strong>
           ${formatMoney(item.amount)}
         </strong>
+
 
         <button
           type="button"
@@ -2710,7 +3827,9 @@ function renderDebts(items) {
         </button>
 
       </div>
+
     `;
+
 
     container.appendChild(
       row
@@ -2730,8 +3849,12 @@ function handleDebtListClick(
       '[data-action="edit-debt"]'
     );
 
-  if (!button) {
+  if (
+    !button
+  ) {
+
     return;
+
   }
 
   openDebtEditModal(
@@ -2741,15 +3864,20 @@ function handleDebtListClick(
 }
 
 
-function openDebtEditModal(id) {
+function openDebtEditModal(
+  id
+) {
 
   const item =
     currentDebts.find(
       debt =>
-        debt.id === id
+        debt.id ===
+        id
     );
 
-  if (!item) {
+  if (
+    !item
+  ) {
 
     alert(
       "부채를 찾을 수 없습니다."
@@ -2758,6 +3886,7 @@ function openDebtEditModal(id) {
     return;
 
   }
+
 
   $("editDebtId").value =
     item.id;
@@ -2771,9 +3900,11 @@ function openDebtEditModal(id) {
   $("editDebtAmount").value =
     item.amount;
 
+
   clearMessage(
     $("editDebtMessage")
   );
+
 
   openModal(
     "debtEditModal"
@@ -2797,13 +3928,15 @@ async function submitDebtEdit(
 
   event.preventDefault();
 
+
   const data = {
 
     id:
       $("editDebtId").value,
 
     category:
-      $("editDebtCategory").value,
+      $("editDebtCategory")
+        .value,
 
     name:
       $("editDebtName")
@@ -2812,10 +3945,12 @@ async function submitDebtEdit(
 
     amount:
       Number(
-        $("editDebtAmount").value
+        $("editDebtAmount")
+          .value
       )
 
   };
+
 
   try {
 
@@ -2852,7 +3987,9 @@ async function deleteCurrentDebt() {
       "이 부채를 삭제할까요?"
     )
   ) {
+
     return;
+
   }
 
   try {
@@ -2882,7 +4019,7 @@ async function deleteCurrentDebt() {
 
 
 /*************************************************
- * 자산 / 부채 / 순자산
+ * 자산 / 부채 요약
  *************************************************/
 
 function renderWealthSummary() {
@@ -2892,7 +4029,8 @@ function renderWealthSummary() {
       (sum, item) =>
         sum +
         Number(
-          item.amount || 0
+          item.amount ||
+          0
         ),
       0
     );
@@ -2903,7 +4041,8 @@ function renderWealthSummary() {
       (sum, item) =>
         sum +
         Number(
-          item.amount || 0
+          item.amount ||
+          0
         ),
       0
     );
@@ -2914,42 +4053,52 @@ function renderWealthSummary() {
     totalDebts;
 
 
-  $("totalAssets").textContent =
-    formatMoney(
-      totalAssets
-    );
-
-  $("totalDebts").textContent =
-    formatMoney(
-      totalDebts
-    );
-
-  $("netWorth").textContent =
-    formatMoney(
-      netWorth
-    );
-
-  $("netWorthDetail").textContent =
-    formatMoney(
-      netWorth
-    );
+  $("totalAssets")
+    .textContent =
+      formatMoney(
+        totalAssets
+      );
 
 
-  $("netWorth").className =
-    netWorth < 0
-      ? "negative"
-      : "";
+  $("totalDebts")
+    .textContent =
+      formatMoney(
+        totalDebts
+      );
 
-  $("netWorthDetail").className =
-    netWorth < 0
-      ? "negative"
-      : "";
+
+  $("netWorth")
+    .textContent =
+      formatMoney(
+        netWorth
+      );
+
+
+  $("netWorthDetail")
+    .textContent =
+      formatMoney(
+        netWorth
+      );
+
+
+  $("netWorth")
+    .className =
+      netWorth < 0
+        ? "negative"
+        : "";
+
+
+  $("netWorthDetail")
+    .className =
+      netWorth < 0
+        ? "negative"
+        : "";
 
 }
 
 
 /*************************************************
- * 반복거래 조회
+ * 반복거래
  *************************************************/
 
 async function loadRecurringTransactions() {
@@ -2961,23 +4110,24 @@ async function loadRecurringTransactions() {
         "getRecurringTransactions"
       );
 
+
     recurringItems =
-      response.data || [];
+      response.data ||
+      [];
+
 
     renderRecurringTable();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      error
+    );
 
   }
 
 }
 
-
-/*************************************************
- * 반복거래 저장
- *************************************************/
 
 async function saveRecurringTransaction(
   event
@@ -2985,11 +4135,15 @@ async function saveRecurringTransaction(
 
   event.preventDefault();
 
+
   const id =
-    $("recurringId").value;
+    $("recurringId")
+      .value;
+
 
   const type =
-    $("recurringType").value;
+    $("recurringType")
+      .value;
 
 
   const data = {
@@ -3035,7 +4189,9 @@ async function saveRecurringTransaction(
 
   try {
 
-    if (id) {
+    if (
+      id
+    ) {
 
       await apiPost(
         "updateRecurringTransaction",
@@ -3063,7 +4219,11 @@ async function saveRecurringTransaction(
 
     }
 
-    resetRecurringForm(false);
+
+    resetRecurringForm(
+      false
+    );
+
 
     await Promise.all([
       loadRecurringTransactions(),
@@ -3083,10 +4243,6 @@ async function saveRecurringTransaction(
 }
 
 
-/*************************************************
- * 반복거래 목록
- *************************************************/
-
 function renderRecurringTable() {
 
   const tbody =
@@ -3095,17 +4251,24 @@ function renderRecurringTable() {
   tbody.innerHTML =
     "";
 
-  if (!recurringItems.length) {
+  if (
+    recurringItems.length ===
+    0
+  ) {
 
     tbody.innerHTML = `
+
       <tr>
+
         <td
           colspan="8"
           class="empty-message"
         >
           등록된 반복거래가 없습니다.
         </td>
+
       </tr>
+
     `;
 
     return;
@@ -3113,95 +4276,127 @@ function renderRecurringTable() {
   }
 
 
-  recurringItems.forEach(item => {
+  recurringItems.forEach(
+    item => {
 
-    const row =
-      document.createElement(
-        "tr"
+      const typeClass =
+        getTransactionTypeClass(
+          item.type
+        );
+
+
+      const row =
+        document.createElement(
+          "tr"
+        );
+
+
+      row.innerHTML = `
+
+        <td>
+
+          <span class="frequency-badge">
+
+            ${
+              item.frequency ===
+              "YEARLY"
+                ? "매년"
+                : "매월"
+            }
+
+          </span>
+
+        </td>
+
+
+        <td>
+          ${escapeHtml(item.startDate)}
+        </td>
+
+
+        <td>
+
+          <span
+            class="
+              type-badge
+              ${typeClass.badge}
+            "
+          >
+            ${escapeHtml(item.type)}
+          </span>
+
+        </td>
+
+
+        <td>
+          ${escapeHtml(item.category)}
+        </td>
+
+
+        <td>
+
+          <strong class="${typeClass.text}">
+            ${formatMoney(item.amount)}
+          </strong>
+
+        </td>
+
+
+        <td>
+          ${escapeHtml(item.memo || "-")}
+        </td>
+
+
+        <td>
+
+          <span class="status-badge">
+
+            ${
+              item.active === false
+                ? "중지"
+                : "사용"
+            }
+
+          </span>
+
+        </td>
+
+
+        <td>
+
+          <button
+            type="button"
+            class="table-action-btn"
+            data-action="edit-recurring"
+            data-id="${escapeHtml(item.id)}"
+          >
+            수정
+          </button>
+
+
+          <button
+            type="button"
+            class="table-action-btn"
+            data-action="delete-recurring"
+            data-id="${escapeHtml(item.id)}"
+          >
+            삭제
+          </button>
+
+        </td>
+
+      `;
+
+
+      tbody.appendChild(
+        row
       );
 
-    row.innerHTML = `
-      <td>
-        <span class="frequency-badge">
-          ${
-            item.frequency ===
-            "YEARLY"
-              ? "매년"
-              : "매월"
-          }
-        </span>
-      </td>
-
-      <td>
-        ${escapeHtml(item.startDate)}
-      </td>
-
-      <td>
-        <span class="type-badge">
-          ${escapeHtml(item.type)}
-        </span>
-      </td>
-
-      <td>
-        ${escapeHtml(item.category)}
-      </td>
-
-      <td>
-        ${formatMoney(item.amount)}
-      </td>
-
-      <td>
-        ${escapeHtml(
-          item.memo ||
-          "-"
-        )}
-      </td>
-
-      <td>
-        <span class="status-badge">
-          ${
-            item.active === false
-              ? "중지"
-              : "사용"
-          }
-        </span>
-      </td>
-
-      <td>
-
-        <button
-          type="button"
-          class="table-action-btn"
-          data-action="edit-recurring"
-          data-id="${escapeHtml(item.id)}"
-        >
-          수정
-        </button>
-
-        <button
-          type="button"
-          class="table-action-btn"
-          data-action="delete-recurring"
-          data-id="${escapeHtml(item.id)}"
-        >
-          삭제
-        </button>
-
-      </td>
-    `;
-
-    tbody.appendChild(
-      row
-    );
-
-  });
+    }
+  );
 
 }
 
-
-/*************************************************
- * 반복거래 수정 / 삭제
- *************************************************/
 
 function handleRecurringTableClick(
   event
@@ -3212,7 +4407,9 @@ function handleRecurringTableClick(
       '[data-action="edit-recurring"]'
     );
 
-  if (edit) {
+  if (
+    edit
+  ) {
 
     startRecurringEdit(
       edit.dataset.id
@@ -3228,7 +4425,9 @@ function handleRecurringTableClick(
       '[data-action="delete-recurring"]'
     );
 
-  if (remove) {
+  if (
+    remove
+  ) {
 
     deleteRecurringTransaction(
       remove.dataset.id
@@ -3239,15 +4438,20 @@ function handleRecurringTableClick(
 }
 
 
-function startRecurringEdit(id) {
+function startRecurringEdit(
+  id
+) {
 
   const item =
     recurringItems.find(
       recurring =>
-        recurring.id === id
+        recurring.id ===
+        id
     );
 
-  if (!item) {
+  if (
+    !item
+  ) {
 
     alert(
       "반복거래를 찾을 수 없습니다."
@@ -3261,11 +4465,14 @@ function startRecurringEdit(id) {
   $("recurringId").value =
     item.id;
 
+
   $("recurringFrequency").value =
     item.frequency;
 
+
   $("recurringStartDate").value =
     item.startDate;
+
 
   $("recurringType").value =
     item.type;
@@ -3280,11 +4487,14 @@ function startRecurringEdit(id) {
     item.paymentMethod ||
     "카드";
 
+
   $("recurringAmount").value =
     item.amount;
 
+
   $("recurringMemo").value =
-    item.memo || "";
+    item.memo ||
+    "";
 
 
   $("recurringSubmitText")
@@ -3305,47 +4515,55 @@ function startRecurringEdit(id) {
 
   $("recurringForm")
     .scrollIntoView({
-      behavior:
-        "smooth",
-      block:
-        "start"
+      behavior: "smooth",
+      block: "start"
     });
 
 }
 
 
 function resetRecurringForm(
-  clearMessageToo = true
+  clearMessageToo =
+  true
 ) {
 
   $("recurringId").value =
     "";
 
+
   $("recurringFrequency").value =
     "MONTHLY";
+
 
   $("recurringStartDate").value =
     formatDateForInput(
       new Date()
     );
 
+
   $("recurringType").value =
     "지출";
 
+
   renderRecurringCategories();
+
 
   $("recurringPaymentMethod").value =
     "카드";
 
+
   $("recurringAmount").value =
     "";
+
 
   $("recurringMemo").value =
     "";
 
+
   $("recurringSubmitText")
     .textContent =
       "반복거래 등록";
+
 
   $("cancelRecurringEditButton")
     .classList
@@ -3358,7 +4576,9 @@ function resetRecurringForm(
   );
 
 
-  if (clearMessageToo) {
+  if (
+    clearMessageToo
+  ) {
 
     clearMessage(
       $("recurringMessage")
@@ -3378,7 +4598,9 @@ async function deleteRecurringTransaction(
       "이 반복거래를 삭제할까요?"
     )
   ) {
+
     return;
+
   }
 
   try {
@@ -3390,6 +4612,7 @@ async function deleteRecurringTransaction(
       }
     );
 
+
     await Promise.all([
       loadRecurringTransactions(),
       loadDashboard()
@@ -3397,9 +4620,178 @@ async function deleteRecurringTransaction(
 
   } catch (error) {
 
-    alert(error.message);
+    alert(
+      error.message
+    );
 
   }
+
+}
+
+
+/*************************************************
+ * 색상 설정
+ *************************************************/
+
+function loadTypeColors() {
+
+  const saved =
+    JSON.parse(
+      localStorage.getItem(
+        "householdTypeColors"
+      ) ||
+      "{}"
+    );
+
+
+  const colors = {
+
+    income:
+      saved.income ||
+      DEFAULT_TYPE_COLORS.income,
+
+    expense:
+      saved.expense ||
+      DEFAULT_TYPE_COLORS.expense,
+
+    saving:
+      saved.saving ||
+      DEFAULT_TYPE_COLORS.saving
+
+  };
+
+
+  $("incomeColor").value =
+    colors.income;
+
+
+  $("expenseColor").value =
+    colors.expense;
+
+
+  $("savingColor").value =
+    colors.saving;
+
+
+  applyTypeColors(
+    colors
+  );
+
+}
+
+
+function saveTypeColors() {
+
+  const colors = {
+
+    income:
+      $("incomeColor")
+        .value,
+
+    expense:
+      $("expenseColor")
+        .value,
+
+    saving:
+      $("savingColor")
+        .value
+
+  };
+
+
+  localStorage.setItem(
+    "householdTypeColors",
+    JSON.stringify(
+      colors
+    )
+  );
+
+
+  applyTypeColors(
+    colors
+  );
+
+}
+
+
+function resetTypeColors() {
+
+  $("incomeColor").value =
+    DEFAULT_TYPE_COLORS.income;
+
+
+  $("expenseColor").value =
+    DEFAULT_TYPE_COLORS.expense;
+
+
+  $("savingColor").value =
+    DEFAULT_TYPE_COLORS.saving;
+
+
+  localStorage.removeItem(
+    "householdTypeColors"
+  );
+
+
+  applyTypeColors(
+    DEFAULT_TYPE_COLORS
+  );
+
+}
+
+
+function applyTypeColors(
+  colors
+) {
+
+  const root =
+    document.documentElement;
+
+
+  root.style.setProperty(
+    "--income-color",
+    colors.income
+  );
+
+
+  root.style.setProperty(
+    "--expense-color",
+    colors.expense
+  );
+
+
+  root.style.setProperty(
+    "--saving-color",
+    colors.saving
+  );
+
+}
+
+
+/*************************************************
+ * 맨 위로
+ *************************************************/
+
+function updateScrollTopButton() {
+
+  const button =
+    $("scrollTopButton");
+
+  if (
+    !button
+  ) {
+
+    return;
+
+  }
+
+  button
+    .classList
+    .toggle(
+      "visible",
+      window.scrollY >
+      300
+    );
 
 }
 
@@ -3408,11 +4800,14 @@ async function deleteRecurringTransaction(
  * 모달
  *************************************************/
 
-function openModal(id) {
+function openModal(
+  id
+) {
 
   $(id)
     .classList
     .remove("hidden");
+
 
   document.body
     .classList
@@ -3421,36 +4816,42 @@ function openModal(id) {
 }
 
 
-function closeModal(id) {
+function closeModal(
+  id
+) {
 
   const modal =
     $(id);
 
   if (
     !modal ||
-    modal.classList.contains(
-      "hidden"
-    )
+    modal
+      .classList
+      .contains("hidden")
   ) {
+
     return;
+
   }
 
-  modal.classList.add(
-    "hidden"
-  );
+
+  modal
+    .classList
+    .add("hidden");
 
 
   if (
-    document.querySelectorAll(
-      ".modal:not(.hidden)"
-    ).length === 0
+    document
+      .querySelectorAll(
+        ".modal:not(.hidden)"
+      )
+      .length ===
+    0
   ) {
 
     document.body
       .classList
-      .remove(
-        "modal-open"
-      );
+      .remove("modal-open");
 
   }
 
@@ -3468,22 +4869,34 @@ async function apiGet(
 
   checkApiUrl();
 
+
   const url =
-    new URL(API_URL);
+    new URL(
+      API_URL
+    );
+
 
   url.searchParams.set(
     "action",
     action
   );
 
-  Object.entries(params)
-    .forEach(
-      ([key, value]) => {
 
-        url.searchParams.set(
-          key,
-          value
-        );
+  Object
+    .entries(
+      params
+    )
+    .forEach(
+      (
+        [key, value]
+      ) => {
+
+        url
+          .searchParams
+          .set(
+            key,
+            value
+          );
 
       }
     );
@@ -3493,11 +4906,9 @@ async function apiGet(
     await fetch(
       url.toString(),
       {
-        method:
-          "GET",
-
-        redirect:
-          "follow"
+        method: "GET",
+        redirect: "follow",
+        cache: "no-store"
       }
     );
 
@@ -3525,11 +4936,13 @@ async function apiPost(
     await fetch(
       API_URL,
       {
-        method:
-          "POST",
+        method: "POST",
 
         redirect:
           "follow",
+
+        cache:
+          "no-store",
 
         headers: {
           "Content-Type":
@@ -3553,25 +4966,26 @@ async function apiPost(
 
 
 /*************************************************
- * API 응답
+ * API response
  *************************************************/
 
 async function parseApiResponse(
   response
 ) {
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     throw new Error(
-      `HTTP 오류: ${
-        response.status
-      }`
+      `HTTP 오류: ${response.status}`
     );
 
   }
 
 
   let result;
+
 
   try {
 
@@ -3587,7 +5001,9 @@ async function parseApiResponse(
   }
 
 
-  if (!result.success) {
+  if (
+    !result.success
+  ) {
 
     throw new Error(
       result.message ||
@@ -3607,7 +5023,7 @@ function checkApiUrl() {
   if (
     !API_URL ||
     API_URL ===
-      "APPS_SCRIPT_WEB_APP_URL"
+    "APPS_SCRIPT_WEB_APP_URL"
   ) {
 
     throw new Error(
@@ -3632,6 +5048,7 @@ function showMessage(
   element.textContent =
     message;
 
+
   element.className =
     `message ${type}`;
 
@@ -3645,6 +5062,7 @@ function clearMessage(
   element.textContent =
     "";
 
+
   element.className =
     "message";
 
@@ -3652,34 +5070,54 @@ function clearMessage(
 
 
 /*************************************************
- * 표시 유틸
+ * 유틸
  *************************************************/
 
-function formatMoney(value) {
+function formatMoney(
+  value
+) {
 
   const amount =
-    Number(value) || 0;
+    Number(
+      value
+    ) ||
+    0;
+
 
   return (
-    amount.toLocaleString(
-      "ko-KR"
-    ) +
+    amount
+      .toLocaleString(
+        "ko-KR"
+      ) +
     "원"
   );
 
 }
 
 
-function formatPercent(value) {
+function formatPercent(
+  value
+) {
 
   const number =
-    Number(value) || 0;
+    Number(
+      value
+    ) ||
+    0;
+
 
   if (
-    Number.isInteger(number)
+    Number.isInteger(
+      number
+    )
   ) {
-    return String(number);
+
+    return String(
+      number
+    );
+
   }
+
 
   return number
     .toFixed(1)
@@ -3698,21 +5136,27 @@ function formatDateForInput(
   const year =
     date.getFullYear();
 
+
   const month =
     String(
-      date.getMonth() + 1
-    ).padStart(
-      2,
-      "0"
-    );
+      date.getMonth() +
+      1
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
 
   const day =
     String(
       date.getDate()
-    ).padStart(
-      2,
-      "0"
-    );
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
 
   return (
     `${year}-` +
@@ -3723,27 +5167,35 @@ function formatDateForInput(
 }
 
 
-function escapeHtml(value) {
+function escapeHtml(
+  value
+) {
 
   return String(
-    value ?? ""
+    value ??
+    ""
   )
+
     .replaceAll(
       "&",
       "&amp;"
     )
+
     .replaceAll(
       "<",
       "&lt;"
     )
+
     .replaceAll(
       ">",
       "&gt;"
     )
+
     .replaceAll(
       '"',
       "&quot;"
     )
+
     .replaceAll(
       "'",
       "&#039;"
