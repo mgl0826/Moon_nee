@@ -1,49 +1,86 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>우리 가계부</title>
-  <link rel="stylesheet" href="style.css">
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
 </head>
+
+
 <body>
+
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+
   <header class="header">
+
     <div class="container header-inner">
-      <h1>우리 가계부</h1>
+
+      <h1>
+        우리 가계부
+      </h1>
+
 
       <nav class="nav">
+
         <button
+          type="button"
           class="nav-btn active"
           data-page="dashboardPage"
-          type="button"
         >
           월별 대시보드
         </button>
 
+
         <button
+          type="button"
           class="nav-btn"
           data-page="transactionPage"
-          type="button"
         >
           거래 입력
         </button>
 
+
         <button
+          type="button"
           class="nav-btn"
           data-page="recurringPage"
-          type="button"
         >
           반복거래
         </button>
+
       </nav>
+
     </div>
+
   </header>
 
 
+
+  <!-- =========================
+       MAIN
+  ========================== -->
+
   <main class="container">
 
+
     <!-- =========================
-         월별 대시보드
+         대시보드
     ========================== -->
 
     <section
@@ -51,16 +88,23 @@
       class="page active"
     >
 
+
+      <!-- 월 선택 -->
+
       <div class="card month-card">
 
         <div class="section-header">
 
           <div>
-            <h2>월별 대시보드</h2>
+
+            <h2>
+              월별 대시보드
+            </h2>
 
             <p class="section-description">
               선택한 월의 수입·지출·저축·예산·자산을 확인합니다.
             </p>
+
           </div>
 
 
@@ -70,7 +114,6 @@
               type="button"
               id="previousMonthButton"
               class="secondary-btn month-arrow-btn"
-              aria-label="이전 달"
             >
               ‹
             </button>
@@ -81,26 +124,59 @@
               id="dashboardYear"
               min="2000"
               max="2100"
-              aria-label="조회 연도"
             >
 
 
-            <select
-              id="dashboardMonth"
-              aria-label="조회 월"
-            >
-              <option value="1">1월</option>
-              <option value="2">2월</option>
-              <option value="3">3월</option>
-              <option value="4">4월</option>
-              <option value="5">5월</option>
-              <option value="6">6월</option>
-              <option value="7">7월</option>
-              <option value="8">8월</option>
-              <option value="9">9월</option>
-              <option value="10">10월</option>
-              <option value="11">11월</option>
-              <option value="12">12월</option>
+            <select id="dashboardMonth">
+
+              <option value="1">
+                1월
+              </option>
+
+              <option value="2">
+                2월
+              </option>
+
+              <option value="3">
+                3월
+              </option>
+
+              <option value="4">
+                4월
+              </option>
+
+              <option value="5">
+                5월
+              </option>
+
+              <option value="6">
+                6월
+              </option>
+
+              <option value="7">
+                7월
+              </option>
+
+              <option value="8">
+                8월
+              </option>
+
+              <option value="9">
+                9월
+              </option>
+
+              <option value="10">
+                10월
+              </option>
+
+              <option value="11">
+                11월
+              </option>
+
+              <option value="12">
+                12월
+              </option>
+
             </select>
 
 
@@ -108,7 +184,6 @@
               type="button"
               id="nextMonthButton"
               class="secondary-btn month-arrow-btn"
-              aria-label="다음 달"
             >
               ›
             </button>
@@ -129,64 +204,106 @@
       </div>
 
 
-      <!-- 요약 -->
+
+      <!-- =========================
+           요약
+      ========================== -->
 
       <div class="summary-grid">
 
-        <div class="summary-card">
-          <span>총 수입</span>
+
+        <div
+          class="summary-card type-card-income"
+        >
+
+          <span>
+            총 수입
+          </span>
+
           <strong id="totalIncome">
             0원
           </strong>
+
         </div>
 
 
-        <div class="summary-card">
-          <span>총 지출</span>
+        <div
+          class="summary-card type-card-expense"
+        >
+
+          <span>
+            총 지출
+          </span>
+
           <strong id="totalExpense">
             0원
           </strong>
+
         </div>
 
 
-        <div class="summary-card">
-          <span>총 저축</span>
+        <div
+          class="summary-card type-card-saving"
+        >
+
+          <span>
+            총 저축
+          </span>
+
           <strong id="totalSaving">
             0원
           </strong>
+
         </div>
 
 
         <div class="summary-card">
-          <span>잔액</span>
+
+          <span>
+            잔액
+          </span>
+
           <strong id="totalBalance">
             0원
           </strong>
+
         </div>
 
 
         <div class="summary-card">
-          <span>순자산</span>
+
+          <span>
+            순자산
+          </span>
+
           <strong id="netWorth">
             0원
           </strong>
+
         </div>
 
       </div>
 
 
-      <!-- 핵심 통계 -->
+
+      <!-- =========================
+           핵심 통계
+      ========================== -->
 
       <div class="card">
 
         <div class="section-header compact-header">
 
           <div>
-            <h2>이번 달 핵심 통계</h2>
+
+            <h2>
+              이번 달 핵심 통계
+            </h2>
 
             <p class="section-description">
               지난달과 비교해 소비 흐름을 빠르게 확인합니다.
             </p>
+
           </div>
 
         </div>
@@ -194,8 +311,12 @@
 
         <div class="stats-grid">
 
+
           <div class="stat-box">
-            <span>전월 대비 지출</span>
+
+            <span>
+              전월 대비 지출
+            </span>
 
             <strong id="expenseChangeRate">
               -
@@ -204,11 +325,15 @@
             <small id="previousExpenseText">
               전월 0원
             </small>
+
           </div>
 
 
           <div class="stat-box">
-            <span>일평균 지출</span>
+
+            <span>
+              일평균 지출
+            </span>
 
             <strong id="dailyExpenseAverage">
               0원
@@ -217,11 +342,15 @@
             <small>
               선택 월 기준
             </small>
+
           </div>
 
 
           <div class="stat-box">
-            <span>최다 지출 카테고리</span>
+
+            <span>
+              최다 지출 카테고리
+            </span>
 
             <strong id="topExpenseCategory">
               -
@@ -230,11 +359,15 @@
             <small id="topExpenseAmount">
               0원
             </small>
+
           </div>
 
 
           <div class="stat-box">
-            <span>저축률</span>
+
+            <span>
+              저축률
+            </span>
 
             <strong id="savingRate">
               0%
@@ -243,6 +376,7 @@
             <small>
               수입 대비 저축
             </small>
+
           </div>
 
         </div>
@@ -250,9 +384,13 @@
       </div>
 
 
-      <!-- 차트 -->
+
+      <!-- =========================
+           차트
+      ========================== -->
 
       <div class="chart-grid">
+
 
         <div class="card">
 
@@ -296,13 +434,17 @@
       </div>
 
 
-      <!-- 전체 예산 -->
+
+      <!-- =========================
+           전체 예산
+      ========================== -->
 
       <div class="card">
 
         <div class="section-header compact-header">
 
           <div>
+
             <h2>
               이번 달 전체 예산
             </h2>
@@ -310,6 +452,7 @@
             <p class="section-description">
               카테고리별로 설정한 예산의 합계입니다.
             </p>
+
           </div>
 
 
@@ -323,39 +466,56 @@
 
         <div class="budget-overview-grid">
 
+
           <div class="budget-overview-item">
-            <span>총 예산</span>
+
+            <span>
+              총 예산
+            </span>
 
             <strong id="totalBudgetAmount">
               0원
             </strong>
+
           </div>
 
 
           <div class="budget-overview-item">
-            <span>예산 사용액</span>
+
+            <span>
+              예산 사용액
+            </span>
 
             <strong id="totalBudgetUsed">
               0원
             </strong>
+
           </div>
 
 
           <div class="budget-overview-item">
-            <span>남은 예산</span>
+
+            <span>
+              남은 예산
+            </span>
 
             <strong id="totalBudgetRemaining">
               0원
             </strong>
+
           </div>
 
 
           <div class="budget-overview-item">
-            <span>사용률</span>
+
+            <span>
+              사용률
+            </span>
 
             <strong id="totalBudgetRate">
               0%
             </strong>
+
           </div>
 
         </div>
@@ -373,7 +533,10 @@
       </div>
 
 
-      <!-- 카테고리별 지출 -->
+
+      <!-- =========================
+           카테고리별 지출
+      ========================== -->
 
       <div class="card">
 
@@ -387,13 +550,31 @@
       </div>
 
 
-      <!-- 월 예산 -->
 
-      <div class="card">
+      <!-- =========================
+           월 예산 설정
+      ========================== -->
 
-        <h2>
-          월 예산 설정
-        </h2>
+      <div
+        class="card"
+        id="budgetSettingCard"
+      >
+
+        <div class="section-header compact-header">
+
+          <div>
+
+            <h2>
+              월 예산 설정
+            </h2>
+
+            <p class="section-description">
+              예산을 등록한 후 아래 목록의 수정 버튼을 눌러 금액을 변경할 수 있습니다.
+            </p>
+
+          </div>
+
+        </div>
 
 
         <form
@@ -422,7 +603,9 @@
             type="submit"
             class="primary-btn"
           >
-            저장
+            <span id="budgetSubmitText">
+              저장
+            </span>
           </button>
 
         </form>
@@ -441,12 +624,35 @@
             <thead>
 
               <tr>
-                <th>카테고리</th>
-                <th>설정예산</th>
-                <th>사용금액</th>
-                <th>남은예산</th>
-                <th>사용률</th>
-                <th>상태</th>
+
+                <th>
+                  카테고리
+                </th>
+
+                <th>
+                  설정예산
+                </th>
+
+                <th>
+                  사용금액
+                </th>
+
+                <th>
+                  남은예산
+                </th>
+
+                <th>
+                  사용률
+                </th>
+
+                <th>
+                  상태
+                </th>
+
+                <th>
+                  관리
+                </th>
+
               </tr>
 
             </thead>
@@ -462,7 +668,70 @@
       </div>
 
 
-      <!-- 월별 거래내역 -->
+
+      <!-- =========================
+           월 예산 카테고리 관리
+      ========================== -->
+
+      <div class="card">
+
+        <div class="section-header compact-header">
+
+          <div>
+
+            <h2>
+              월 예산 카테고리 관리
+            </h2>
+
+            <p class="section-description">
+              지출 카테고리를 직접 추가하고 이름을 변경하거나 삭제할 수 있습니다.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="category-manager-add">
+
+          <input
+            type="text"
+            id="budgetNewCategory"
+            maxlength="30"
+            placeholder="새 지출 카테고리"
+          >
+
+
+          <button
+            type="button"
+            id="addBudgetCategoryButton"
+            class="primary-btn"
+          >
+            카테고리 추가
+          </button>
+
+        </div>
+
+
+        <div
+          id="budgetCategoryMessage"
+          class="message"
+        ></div>
+
+
+        <div
+          id="budgetCategoryManagerList"
+          class="category-manager-list"
+        >
+        </div>
+
+      </div>
+
+
+
+      <!-- =========================
+           월 거래내역
+      ========================== -->
 
       <div class="card">
 
@@ -486,10 +755,9 @@
 
           <div class="transaction-filters">
 
-            <select
-              id="transactionFilterType"
-              aria-label="거래 유형 필터"
-            >
+
+            <select id="transactionFilterType">
+
               <option value="">
                 전체 유형
               </option>
@@ -505,16 +773,16 @@
               <option value="저축">
                 저축
               </option>
+
             </select>
 
 
-            <select
-              id="transactionFilterCategory"
-              aria-label="카테고리 필터"
-            >
+            <select id="transactionFilterCategory">
+
               <option value="">
                 전체 카테고리
               </option>
+
             </select>
 
           </div>
@@ -529,13 +797,35 @@
             <thead>
 
               <tr>
-                <th>날짜</th>
-                <th>유형</th>
-                <th>카테고리</th>
-                <th>결제수단</th>
-                <th>금액</th>
-                <th>메모</th>
-                <th>관리</th>
+
+                <th>
+                  날짜
+                </th>
+
+                <th>
+                  유형
+                </th>
+
+                <th>
+                  카테고리
+                </th>
+
+                <th>
+                  결제수단
+                </th>
+
+                <th>
+                  금액
+                </th>
+
+                <th>
+                  메모
+                </th>
+
+                <th>
+                  관리
+                </th>
+
               </tr>
 
             </thead>
@@ -551,7 +841,10 @@
       </div>
 
 
-      <!-- 자산 / 부채 -->
+
+      <!-- =========================
+           자산 / 부채 요약
+      ========================== -->
 
       <div class="card">
 
@@ -573,6 +866,7 @@
 
 
         <div class="wealth-grid">
+
 
           <div class="wealth-box">
 
@@ -617,7 +911,13 @@
       </div>
 
 
+
+      <!-- =========================
+           자산 / 부채 관리
+      ========================== -->
+
       <div class="asset-debt-grid">
+
 
         <!-- 자산 -->
 
@@ -637,6 +937,7 @@
               id="assetCategory"
               required
             >
+
               <option value="예금">
                 예금
               </option>
@@ -656,6 +957,7 @@
               <option value="기타">
                 기타
               </option>
+
             </select>
 
 
@@ -706,6 +1008,7 @@
         </div>
 
 
+
         <!-- 부채 -->
 
         <div class="card">
@@ -724,6 +1027,7 @@
               id="debtCategory"
               required
             >
+
               <option value="대출">
                 대출
               </option>
@@ -739,6 +1043,7 @@
               <option value="기타">
                 기타
               </option>
+
             </select>
 
 
@@ -784,7 +1089,103 @@
 
       </div>
 
+
+
+      <!-- =========================
+           색상 설정
+      ========================== -->
+
+      <div class="card">
+
+        <div class="section-header compact-header">
+
+          <div>
+
+            <h2>
+              유형별 색상 설정
+            </h2>
+
+            <p class="section-description">
+              수입·지출·저축의 표시 색상을 원하는 색으로 변경할 수 있습니다.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="color-setting-grid">
+
+
+          <label class="color-setting-item">
+
+            <span>
+              수입
+            </span>
+
+            <input
+              type="color"
+              id="incomeColor"
+              value="#2e7d32"
+            >
+
+          </label>
+
+
+          <label class="color-setting-item">
+
+            <span>
+              지출
+            </span>
+
+            <input
+              type="color"
+              id="expenseColor"
+              value="#c62828"
+            >
+
+          </label>
+
+
+          <label class="color-setting-item">
+
+            <span>
+              저축
+            </span>
+
+            <input
+              type="color"
+              id="savingColor"
+              value="#1565c0"
+            >
+
+          </label>
+
+
+          <div class="color-setting-actions">
+
+            <button
+              type="button"
+              id="resetTypeColorsButton"
+              class="secondary-btn"
+            >
+              기본색상
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <p class="section-description color-save-description">
+          색상은 현재 브라우저에 자동 저장됩니다.
+        </p>
+
+      </div>
+
+
     </section>
+
 
 
     <!-- =========================
@@ -805,6 +1206,7 @@
 
         <form id="transactionForm">
 
+
           <div class="form-group">
 
             <label for="transactionDate">
@@ -820,16 +1222,19 @@
           </div>
 
 
+
           <div class="form-group">
 
             <label for="transactionType">
               유형
             </label>
 
+
             <select
               id="transactionType"
               required
             >
+
               <option value="지출">
                 지출
               </option>
@@ -841,9 +1246,11 @@
               <option value="저축">
                 저축
               </option>
+
             </select>
 
           </div>
+
 
 
           <div class="form-group">
@@ -866,13 +1273,26 @@
                 type="button"
                 id="showCategoryButton"
                 class="secondary-btn small-btn"
+                title="카테고리 추가"
               >
                 +
+              </button>
+
+
+              <button
+                type="button"
+                id="deleteSelectedCategoryButton"
+                class="secondary-btn small-btn category-delete-btn"
+                title="선택 카테고리 삭제"
+                aria-label="선택 카테고리 삭제"
+              >
+                ×
               </button>
 
             </div>
 
           </div>
+
 
 
           <div
@@ -897,6 +1317,7 @@
             </button>
 
           </div>
+
 
 
           <div
@@ -924,11 +1345,13 @@
           </div>
 
 
+
           <div class="form-group">
 
             <label for="transactionAmount">
               금액
             </label>
+
 
             <input
               type="number"
@@ -942,11 +1365,13 @@
           </div>
 
 
+
           <div class="form-group">
 
             <label for="transactionMemo">
               메모
             </label>
+
 
             <input
               type="text"
@@ -956,6 +1381,7 @@
             >
 
           </div>
+
 
 
           <button
@@ -976,6 +1402,7 @@
       </div>
 
     </section>
+
 
 
     <!-- =========================
@@ -1017,16 +1444,19 @@
           >
 
 
+
           <div class="form-group">
 
             <label for="recurringFrequency">
               반복주기
             </label>
 
+
             <select
               id="recurringFrequency"
               required
             >
+
               <option value="MONTHLY">
                 매월
               </option>
@@ -1034,9 +1464,11 @@
               <option value="YEARLY">
                 매년
               </option>
+
             </select>
 
           </div>
+
 
 
           <div class="form-group">
@@ -1044,6 +1476,7 @@
             <label for="recurringStartDate">
               시작일
             </label>
+
 
             <input
               type="date"
@@ -1054,16 +1487,19 @@
           </div>
 
 
+
           <div class="form-group">
 
             <label for="recurringType">
               유형
             </label>
 
+
             <select
               id="recurringType"
               required
             >
+
               <option value="지출">
                 지출
               </option>
@@ -1075,9 +1511,11 @@
               <option value="저축">
                 저축
               </option>
+
             </select>
 
           </div>
+
 
 
           <div class="form-group">
@@ -1085,6 +1523,7 @@
             <label for="recurringCategory">
               카테고리
             </label>
+
 
             <select
               id="recurringCategory"
@@ -1095,6 +1534,7 @@
           </div>
 
 
+
           <div
             id="recurringPaymentMethodGroup"
             class="form-group"
@@ -1103,6 +1543,7 @@
             <label for="recurringPaymentMethod">
               결제수단
             </label>
+
 
             <select id="recurringPaymentMethod">
 
@@ -1119,11 +1560,13 @@
           </div>
 
 
+
           <div class="form-group">
 
             <label for="recurringAmount">
               금액
             </label>
+
 
             <input
               type="number"
@@ -1136,11 +1579,13 @@
           </div>
 
 
+
           <div class="form-group recurring-memo-group">
 
             <label for="recurringMemo">
               메모
             </label>
+
 
             <input
               type="text"
@@ -1150,6 +1595,7 @@
             >
 
           </div>
+
 
 
           <div class="form-actions recurring-actions">
@@ -1167,9 +1613,11 @@
               type="submit"
               class="primary-btn"
             >
+
               <span id="recurringSubmitText">
                 반복거래 등록
               </span>
+
             </button>
 
           </div>
@@ -1183,6 +1631,7 @@
         ></div>
 
       </div>
+
 
 
       <div class="card">
@@ -1199,14 +1648,39 @@
             <thead>
 
               <tr>
-                <th>주기</th>
-                <th>시작일</th>
-                <th>유형</th>
-                <th>카테고리</th>
-                <th>금액</th>
-                <th>메모</th>
-                <th>상태</th>
-                <th>관리</th>
+
+                <th>
+                  주기
+                </th>
+
+                <th>
+                  시작일
+                </th>
+
+                <th>
+                  유형
+                </th>
+
+                <th>
+                  카테고리
+                </th>
+
+                <th>
+                  금액
+                </th>
+
+                <th>
+                  메모
+                </th>
+
+                <th>
+                  상태
+                </th>
+
+                <th>
+                  관리
+                </th>
+
               </tr>
 
             </thead>
@@ -1223,7 +1697,9 @@
 
     </section>
 
+
   </main>
+
 
 
   <!-- =========================
@@ -1253,6 +1729,7 @@
           거래 수정
         </h2>
 
+
         <button
           type="button"
           id="closeEditModalButton"
@@ -1272,11 +1749,13 @@
         >
 
 
+
         <div class="form-group">
 
           <label for="editTransactionDate">
             날짜
           </label>
+
 
           <input
             type="date"
@@ -1287,16 +1766,19 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editTransactionType">
             유형
           </label>
 
+
           <select
             id="editTransactionType"
             required
           >
+
             <option value="지출">
               지출
             </option>
@@ -1308,9 +1790,11 @@
             <option value="저축">
               저축
             </option>
+
           </select>
 
         </div>
+
 
 
         <div class="form-group">
@@ -1318,6 +1802,7 @@
           <label for="editTransactionCategory">
             카테고리
           </label>
+
 
           <select
             id="editTransactionCategory"
@@ -1328,6 +1813,7 @@
         </div>
 
 
+
         <div
           id="editPaymentMethodGroup"
           class="form-group"
@@ -1336,6 +1822,7 @@
           <label for="editPaymentMethod">
             결제수단
           </label>
+
 
           <select id="editPaymentMethod">
 
@@ -1352,11 +1839,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editTransactionAmount">
             금액
           </label>
+
 
           <input
             type="number"
@@ -1369,11 +1858,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editTransactionMemo">
             메모
           </label>
+
 
           <input
             type="text"
@@ -1382,6 +1873,7 @@
           >
 
         </div>
+
 
 
         <div class="modal-actions">
@@ -1430,6 +1922,7 @@
   </div>
 
 
+
   <!-- =========================
        자산 수정 모달
   ========================== -->
@@ -1453,6 +1946,7 @@
           자산 수정
         </h2>
 
+
         <button
           type="button"
           id="closeAssetModalButton"
@@ -1472,11 +1966,13 @@
         >
 
 
+
         <div class="form-group">
 
           <label for="editAssetCategory">
             카테고리
           </label>
+
 
           <select id="editAssetCategory">
 
@@ -1505,11 +2001,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editAssetName">
             자산명
           </label>
+
 
           <input
             type="text"
@@ -1521,11 +2019,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editAssetAmount">
             금액
           </label>
+
 
           <input
             type="number"
@@ -1536,6 +2036,7 @@
           >
 
         </div>
+
 
 
         <div class="modal-actions">
@@ -1584,6 +2085,7 @@
   </div>
 
 
+
   <!-- =========================
        부채 수정 모달
   ========================== -->
@@ -1607,6 +2109,7 @@
           부채 수정
         </h2>
 
+
         <button
           type="button"
           id="closeDebtModalButton"
@@ -1626,11 +2129,13 @@
         >
 
 
+
         <div class="form-group">
 
           <label for="editDebtCategory">
             카테고리
           </label>
+
 
           <select id="editDebtCategory">
 
@@ -1655,11 +2160,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editDebtName">
             부채명
           </label>
+
 
           <input
             type="text"
@@ -1671,11 +2178,13 @@
         </div>
 
 
+
         <div class="form-group">
 
           <label for="editDebtAmount">
             금액
           </label>
+
 
           <input
             type="number"
@@ -1686,6 +2195,7 @@
           >
 
         </div>
+
 
 
         <div class="modal-actions">
@@ -1734,7 +2244,26 @@
   </div>
 
 
+
+  <!-- =========================
+       맨 위로 이동
+  ========================== -->
+
+  <button
+    type="button"
+    id="scrollTopButton"
+    class="scroll-top-button"
+    title="맨 위로"
+    aria-label="페이지 맨 위로"
+  >
+    ↑
+  </button>
+
+
+
   <script src="app.js"></script>
 
+
 </body>
+
 </html>
